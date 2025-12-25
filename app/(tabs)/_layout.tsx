@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text, View } from 'react-native';
-import { colors } from "../constants/color";
+import { COLORS } from "../constants/colors";
 
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -23,7 +23,7 @@ const PointsBadge = () => {
       borderRadius: 20,
       marginRight: 15,
     }}>
-      <Ionicons name="leaf" size={16} color={colors.green} style={{ marginRight: 5 }} />
+      <Ionicons name="leaf" size={16} color={COLORS.primaryGreen} style={{ marginRight: 5 }} />
 
       <Text style={{ fontWeight: 'bold', color: '#333' }}>
         {points}
@@ -49,7 +49,7 @@ export default function RootLayout() {
           borderColor: 'grey',
           paddingTop: 20,
         },
-        tabBarActiveTintColor: colors.green,
+        tabBarActiveTintColor: COLORS.primaryGreen,
 
         // header
         headerTitleAlign: 'left',
@@ -71,24 +71,12 @@ export default function RootLayout() {
       }}
     >
       <Tabs.Screen
-        name="login"
-        options={{
-          href: null
-        }}
-      />
-      <Tabs.Screen
-        name="register"
-        options={{
-          href: null
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
           title: "Accueil",
           tabBarIcon: ({ focused }) => (
             <View style={{
-              backgroundColor: focused ? colors.green : 'transparent',
+              backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
               borderRadius: 30,
               height: 50,
               width: 50,
@@ -112,7 +100,7 @@ export default function RootLayout() {
           title: "Défis",
           tabBarIcon: ({ focused }) => (
             <View style={{
-              backgroundColor: focused ? colors.green : 'transparent',
+              backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
               borderRadius: 30,
               height: 50,
               width: 50,
@@ -133,7 +121,7 @@ export default function RootLayout() {
           title: "Classement",
           tabBarIcon: ({ focused }) => (
             <View style={{
-              backgroundColor: focused ? colors.green : 'transparent',
+              backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
               borderRadius: 30,
               height: 50,
               width: 50,
@@ -154,7 +142,7 @@ export default function RootLayout() {
           title: "Boutique",
           tabBarIcon: ({ focused }) => (
             <View style={{
-              backgroundColor: focused ? colors.green : 'transparent',
+              backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
               borderRadius: 30,
               height: 50,
               width: 50,
@@ -175,7 +163,7 @@ export default function RootLayout() {
           title: "Profil",
           tabBarIcon: ({ focused }) => (
             <View style={{
-              backgroundColor: focused ? colors.green : 'transparent',
+              backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
               borderRadius: 30,
               height: 50,
               width: 50,
