@@ -9,6 +9,10 @@ export default function RootLayout() {
       <Stack.Screen name="forgotPassword" options={{ title: "Mot de passe oublié", headerShown: false, presentation: 'modal' }} />
 
       <Stack.Screen name="register" options={{ title: "Inscription", headerShown: false, presentation: 'modal' }} />
+
+      <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
+      <Stack.Screen name="apps-connect" options={{ headerShown: false }} />
+      <Stack.Screen name="history" options={{ headerShown: false }} />
     </Stack>
   );
 }

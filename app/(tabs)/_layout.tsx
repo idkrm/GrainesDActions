@@ -65,8 +65,8 @@ export default function RootLayout() {
 
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: 'white', 
-          height: 100, 
+          backgroundColor: 'white',
+          height: 100,
         }
       }}
     >
@@ -176,6 +176,28 @@ export default function RootLayout() {
                 color='black'
                 size={24} /></View>
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="history"
+        options={{
+          href: null,
+          title: "Mon Historique",
+        }}
+      />
+      <Tabs.Screen
+        name="apps-connect"
+        options={{
+          href: null,
+          title: "Mon Historique",
+        }}
+      />
+      <Tabs.Screen
+        name="profile-edit"
+        options={{
+          href: null,
+          title: "Mon Historique",
         }}
       />
     </Tabs>

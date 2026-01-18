@@ -7,4 +7,6 @@ export const COLORS = {
     backgroundGrey: '#F5F5F5',    // Le fond global
     textDark: '#333333',          // Couleur du texte principal
     inputBackground: '#FFFFFF',   // Fond des champs de texte
+    lightGreen : '#C2D9BC',       // Fond vert pastel
+    softRed: '#E06B6B',           // Rouge pas pétant
 }

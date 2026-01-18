@@ -1,20 +1,176 @@
-import { useRouter } from 'expo-router';
-import { Button, Text, View } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import { Link, useRouter } from 'expo-router';
+import React from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { COLORS } from '../constants/colors';
 
-export default function Profile() {
+export default function ProfileScreen() {
   const router = useRouter();
-  
-  const logout = () => {
-    router.replace('../../login'); 
+
+  const handleLogout = () => {
+    console.log("Déconnexion...");
+    router.replace('/login');
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Attention",
+      "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Supprimer", style: "destructive", onPress: () => console.log("Suppression...") }
+      ]
+    );
   };
 
   return (
-    <View>
-      <Text>Profil</Text>
-      <Button
-        onPress={logout}
-        title="Se déconnecter"
-      />
-    </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+
+      {/* SECTION 1 : MES INFORMATIONS */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Mes informations</Text>
+          <Ionicons name="chevron-forward" size={20} color="#333" />
+        </View>
+
+        <Link href="../profile-edit" asChild>
+          <Pressable style={styles.infoBox}>
+            <Text style={styles.infoText}>Pseudo : blabla</Text>
+            <Text style={styles.infoText}>Adresse mail : blabla@test.fr</Text>
+          </Pressable>
+        </Link>
+      </View>
+
+      {/* SECTION 2 : APPLIS CONNECTÉES */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Applications connectées</Text>
+        <Text style={styles.descriptionText}>
+          Aucune application n'est connectée à ce compte
+        </Text>
+        <Link href="../apps-connect" asChild>
+          <Pressable style={styles.standardButton}>
+            <Text style={styles.buttonText}>Connecter des applications</Text>
+          </Pressable>
+        </Link>
+      </View>
+
+      {/* SECTION 3 : BONS D'ACHATS */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Bons d'achats</Text>
+        <Pressable style={styles.standardButton}>
+          <Text style={styles.buttonText}>Voir mes bons d'achats</Text>
+        </Pressable>
+      </View>
+
+      {/* SECTION 4 : HISTORIQUE */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Historique</Text>
+        <Pressable style={styles.standardButton}>
+          <Text style={styles.buttonText}>Voir l'historique de mes échanges</Text>
+        </Pressable>
+      </View>
+
+      {/* SECTION 5 : ACTIONS (DANGER) */}
+      <View style={styles.dangerZone}>
+        <Pressable style={styles.dangerButton} onPress={handleLogout}>
+          <Text style={styles.dangerText}>Se déconnecter</Text>
+        </Pressable>
+
+        <Pressable style={styles.dangerButton} onPress={handleDeleteAccount}>
+          <Text style={styles.dangerText}>Supprimer mon compte</Text>
+        </Pressable>
+      </View>
+
+      {/* Espace pour ne pas être coupé par la navbar */}
+      <View style={{ height: 20 }} />
+
+    </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingTop: 20,
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContent: {
+    padding: 20,
+    paddingTop: 10,
+  },
+  section: {
+    marginBottom: 45,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+
+  // INFORMATIONS UTILISATEUR
+  infoBox: {
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryGreen,
+    borderRadius: 12,
+    padding: 10,
+    backgroundColor: '#fff',
+    marginBottom: 50,
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 5,
+    fontWeight: 500,
+  },
+
+  // BOUTONS STANDARD
+  standardButton: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 20,
+    paddingVertical: 12,
+    marginLeft: 20,
+    marginRight: 20,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  buttonText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+
+  // BOUTONS DANGER (déconnexion, suppression de compte)
+  dangerZone: {
+    marginTop: 80,
+    gap: 15,
+  },
+  dangerButton: {
+    borderWidth: 1,
+    borderColor: COLORS.softRed,
+    borderRadius: 20,
+    paddingVertical: 12,
+    marginLeft: 50,
+    marginRight: 50,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  dangerText: {
+    color: COLORS.softRed,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+});
