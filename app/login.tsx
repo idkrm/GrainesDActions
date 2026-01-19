@@ -5,19 +5,35 @@ import AuthButton from './components/auth/AuthButton';
 import AuthContainer from './components/auth/AuthContainer';
 import AuthInput from './components/auth/AuthInput';
 import { COLORS } from './constants/colors';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from "@/firebaseBD/firebaseConfig";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    console.log("Connexion avec:", username, password);
-    // Vérifier que l'email et le mdp correspond à ce qu'on a dans le BDD firebase
-    // Si ok :
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    try {
 
-    // Si non : afficher un msg d'erreur
+      const userCred = await signInWithEmailAndPassword(auth, username, password);
+
+      console.log("Connecté:", userCred.user.uid);
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      console.log("Erreur login:", error.code);
+
+      // Exemples de gestion d'erreur
+      if (error.code === "auth/user-not-found") {
+        // afficher "Compte introuvable"
+      } else if (error.code === "auth/wrong-password") {
+        // afficher "Mot de passe incorrect"
+      } else if (error.code === "auth/invalid-email") {
+        // afficher "Email invalide"
+      } else {
+        // afficher "Erreur de connexion"
+      }
+    }
   };
 
   return (
