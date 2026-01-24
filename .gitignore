@@ -41,3 +41,8 @@ app-example
 # generated native folders
 /ios
 /android
+/.idea/.gitignore
+/.idea/modules.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/SAE_S5_BUT3.iml
+/.idea/vcs.xml

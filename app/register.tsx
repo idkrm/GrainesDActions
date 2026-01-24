@@ -76,7 +76,10 @@ export default function RegisterScreen() {
 
       const uid = cred.user.uid;
 
-      await setDoc(doc(db, "users", uid), {
+      console.log("CURRENT USER UID:", auth.currentUser?.uid);
+      console.log("CREATED UID:", uid);
+
+      await setDoc(doc(db, "Users", uid), {
         username: username.trim(),
         email: email.trim().toLowerCase(),
         acceptData,
@@ -86,6 +89,10 @@ export default function RegisterScreen() {
 
       router.replace("/(tabs)");
     } catch (error: any) {
+      console.log("REGISTER ERROR RAW =>", error);
+      console.log("REGISTER ERROR CODE =>", error?.code);
+      console.log("REGISTER ERROR MESSAGE =>", error?.message);
+
       const code = error?.code;
       const firebaseErrors: typeof errors = {};
 
@@ -96,11 +103,12 @@ export default function RegisterScreen() {
       } else if (code === "auth/weak-password") {
         firebaseErrors.password = "Mot de passe trop faible.";
       } else {
-        firebaseErrors.general = "Erreur inconnue. Réessaie.";
+        firebaseErrors.general = `Erreur: ${code ?? "inconnue"} | ${error?.message ?? ""}`;
       }
 
       setErrors(firebaseErrors);
     }
+
   };
 
   const clearFieldError = (field: keyof typeof errors) => {
