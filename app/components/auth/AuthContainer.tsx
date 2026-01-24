@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { COLORS } from '../../../constants/colors';
 
 export default function AuthContainer({ children }: { children: React.ReactNode }) {
   return (

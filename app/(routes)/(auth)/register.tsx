@@ -1,14 +1,14 @@
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import AuthButton from './components/auth/AuthButton';
-import AuthContainer from './components/auth/AuthContainer';
-import AuthInput from './components/auth/AuthInput';
-import { COLORS } from './constants/colors';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../firebaseBD/firebaseConfig";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { COLORS } from '../../../constants/colors';
+import { auth, db } from "../../../firebaseBD/firebaseConfig";
+import AuthButton from '../../components/auth/AuthButton';
+import AuthContainer from '../../components/auth/AuthContainer';
+import AuthInput from '../../components/auth/AuthInput';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -121,6 +121,7 @@ export default function RegisterScreen() {
   };
 
   return (
+    <ScrollView>
       <AuthContainer>
         <Text style={styles.title}>Création de compte</Text>
 
@@ -225,6 +226,7 @@ export default function RegisterScreen() {
           </Pressable>
         </View>
       </AuthContainer>
+      </ScrollView>
   );
 }
 

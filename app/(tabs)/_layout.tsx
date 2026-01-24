@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text, View } from 'react-native';
-import { COLORS } from "../constants/colors";
+import { COLORS } from "../../constants/colors";
 
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -11,7 +11,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 // fonction pour afficher le nombre de points
 const PointsBadge = () => {
-  const points = 1250; // à modifier pour que ça soit dynamique
+  const points = 1250; // TODO récupération des points du user dynamiquement
 
   return (
     <View style={{
@@ -176,28 +176,6 @@ export default function RootLayout() {
                 color='black'
                 size={24} /></View>
           ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="history"
-        options={{
-          href: null,
-          title: "Mon Historique",
-        }}
-      />
-      <Tabs.Screen
-        name="apps-connect"
-        options={{
-          href: null,
-          title: "Mon Historique",
-        }}
-      />
-      <Tabs.Screen
-        name="profile-edit"
-        options={{
-          href: null,
-          title: "Mon Historique",
         }}
       />
     </Tabs>

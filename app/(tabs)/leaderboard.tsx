@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../constants/colors';
+import { COLORS } from '../../constants/colors';
 
 export default function LeaderboardScreen() {
   const [activeTab, setActiveTab] = useState<'week' | 'month'>('week');
 
-  // Données factices pour l'exemple
-  // Dans la vraie vie, tu récupérerais ça depuis ta base de données
+  // TO DO récupérer les données des users
   const data = [
     { id: 1, name: 'User1', points: 1250, rank: 1 },
     { id: 2, name: 'User2', points: 980, rank: 2 },
@@ -24,7 +23,7 @@ export default function LeaderboardScreen() {
   return (
     <View style={styles.container}>
       
-      {/* 1. LE SÉLECTEUR (TOGGLE) */}
+      {/* 1. LE SÉLECTEUR (par semaine ou mois) */}
       <View style={styles.toggleContainer}>
         <Pressable 
           style={[styles.toggleButton, activeTab === 'week' && styles.activeToggle]}
@@ -47,9 +46,7 @@ export default function LeaderboardScreen() {
 
       {/* 2. LE PODIUM */}
       <View style={styles.podiumContainer}>
-        {/* L'ordre visuel est : Rank 2 (Gauche), Rank 1 (Milieu), Rank 3 (Droite) */}
-        
-        {/* RANK 2 (Vert) */}
+        {/* RANK 2 */}
         <PodiumBar 
           rank={2} 
           points={topThree[1].points} 
@@ -57,16 +54,16 @@ export default function LeaderboardScreen() {
           height={160} 
         />
 
-        {/* RANK 1 (Bleu - Plus grand) */}
+        {/* RANK 1 */}
         <PodiumBar 
           rank={1} 
           points={topThree[0].points} 
-          color={COLORS.primaryBlue} // Assure-toi d'avoir cette couleur dans tes constants
+          color={COLORS.primaryBlue}
           height={220} 
           isFirst
         />
 
-        {/* RANK 3 (Jaune) */}
+        {/* RANK 3 */}
         <PodiumBar 
           rank={3} 
           points={topThree[2].points} 
@@ -81,12 +78,10 @@ export default function LeaderboardScreen() {
           {restOfList.map((item, index) => (
             <View key={item.id} style={styles.listItem}>
               <Text style={styles.rankText}>#{item.rank}</Text>
-              {/* Espace flexible */}
               <View style={{flex: 1}} /> 
               <Text style={styles.pointsText}>[{item.points} points]</Text>
             </View>
           ))}
-          {/* Un peu d'espace en bas pour le scroll */}
           <View style={{height: 20}} />
         </ScrollView>
       </View>
@@ -95,10 +90,9 @@ export default function LeaderboardScreen() {
   );
 }
 
-// Petit composant pour éviter de répéter le code des barres
+// composant pour les barres du podium
 const PodiumBar = ({ rank, points, color, height, isFirst }: any) => (
   <View style={styles.barWrapper}>
-    {/* La barre colorée */}
     <View style={[styles.bar, { backgroundColor: color, height: height }]}>
       <Text style={styles.barRank}>{rank}</Text>
     </View>
@@ -109,14 +103,14 @@ const PodiumBar = ({ rank, points, color, height, isFirst }: any) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // Fond blanc global
+    backgroundColor: '#fff', 
     paddingTop: 20,
   },
   
   // --- TOGGLE ---
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFE0B2', // Un orange/jaune très pâle pour le fond du switch
+    backgroundColor: '#FFE0B2',
     borderRadius: 25,
     marginHorizontal: 40,
     marginBottom: 30,
@@ -131,8 +125,8 @@ const styles = StyleSheet.create({
   },
   activeToggle: {
     backgroundColor: '#fff',
-    elevation: 2, // Ombre sur Android
-    shadowColor: '#000', // Ombre sur iOS
+    elevation: 2,
+    shadowColor: '#000', 
     shadowOpacity: 0.1,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
@@ -153,8 +147,8 @@ const styles = StyleSheet.create({
   podiumContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'flex-end', // Important : aligne les barres par le bas
-    gap: 15, // Espace entre les barres
+    alignItems: 'flex-end', 
+    gap: 15, 
     marginBottom: 30,
     paddingHorizontal: 20,
   },
@@ -163,10 +157,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   bar: {
-    width: 80, // Largeur des barres
+    width: 80, 
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
-    justifyContent: 'flex-end', // Le chiffre est en bas de la barre
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingBottom: 10,
     marginBottom: 5,
@@ -187,11 +181,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    borderTopLeftRadius: 30, // Arrondi en haut de la liste (comme sur l'image)
+    borderTopLeftRadius: 30, 
     borderTopRightRadius: 30,
     paddingHorizontal: 30,
     paddingTop: 10,
-    // Ombre pour détacher la liste du haut
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
@@ -207,7 +200,7 @@ const styles = StyleSheet.create({
   },
   rankText: {
     fontSize: 20,
-    fontWeight: '900', // Très gras
+    fontWeight: '900',
     color: '#000',
   },
   pointsText: {

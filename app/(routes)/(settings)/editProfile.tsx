@@ -2,18 +2,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { COLORS } from './constants/colors';
+import { COLORS } from '../../../constants/colors';
+import EditModal from '../../components/profile/EditProfileModal';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  
+
   // États pour les switches
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [publicEnabled, setPublicEnabled] = useState(true);
 
+  // TODO on récupère les données du user (là c'est les infos du user de base sans compte)
+  const [userData, setUserData] = useState({
+    pseudo: 'blabla',
+    email: 'blabla@test.fr',
+    password: 'mdp123',
+  });
+
+  // pour le modal qui permet de modif les infos du user
+  const [modalVisible, setModalVisible] = useState(false);
+  const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | null>(null);
+
+  const openEditModal = (field: 'pseudo' | 'email' | 'password') => {
+    setActiveField(field);
+    setModalVisible(true);
+  };
+
+  const handleSaveField = (newValue: string) => {
+    if (activeField) {
+      setUserData({ ...userData, [activeField]: newValue });
+
+      // TODO modifier les données dans firebase
+      console.log(`Mise à jour de ${activeField} vers : ${newValue}`);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      
+
       {/* HEADER PERSONNALISÉ */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
@@ -23,17 +49,17 @@ export default function EditProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        
+
         {/* SECTION PROFIL (CADRE VERT) */}
         <Text style={styles.sectionLabel}>Profil</Text>
         <View style={styles.greenCard}>
-          
+
           {/* Ligne Pseudo */}
           <View style={styles.row}>
-            <View style={{flex: 1}}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.label}>Pseudo : blabla</Text>
             </View>
-            <Pressable>
+            <Pressable onPress={() => openEditModal('pseudo')}>
               <Ionicons name="create-outline" size={24} color="#333" />
             </Pressable>
           </View>
@@ -42,10 +68,10 @@ export default function EditProfileScreen() {
 
           {/* Ligne Email */}
           <View style={styles.row}>
-            <View style={{flex: 1}}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.label}>Adresse mail : blabla@bla.fr</Text>
             </View>
-            <Pressable>
+            <Pressable onPress={() => openEditModal('email')}>
               <Ionicons name="create-outline" size={24} color="#333" />
             </Pressable>
           </View>
@@ -54,10 +80,10 @@ export default function EditProfileScreen() {
 
           {/* Ligne Mot de passe */}
           <View style={styles.row}>
-            <View style={{flex: 1}}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.label}>Mot de passe : ●●●●●●●●</Text>
             </View>
-            <Pressable>
+            <Pressable onPress={() => openEditModal('password')}>
               <Ionicons name="create-outline" size={24} color="#333" />
             </Pressable>
           </View>
@@ -93,8 +119,14 @@ export default function EditProfileScreen() {
             />
           </View>
         </View>
-
       </ScrollView>
+      <EditModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSave={handleSaveField}
+        field={activeField}
+        currentValue={activeField === 'password' ? '' : (activeField ? userData[activeField] : '')}
+      />
     </View>
   );
 }
@@ -128,7 +160,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  
+
   // CADRE VERT
   greenCard: {
     borderWidth: 1,
