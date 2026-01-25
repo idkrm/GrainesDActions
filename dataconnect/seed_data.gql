@@ -1,0 +1,90 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      displayName: "demouser1",
+      email: "demouser1@example.com",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      displayName: "demouser2",
+      email: "demouser2@example.com",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  tip_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440002",
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      title: "Example tip from demouser1",
+      content: "This is an example tip content",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "750e8400-e29b-41d4-a716-446655440003",
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      title: "Example tip from demouser2",
+      content: "This is another example tip content",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+  event_insertMany(data: [
+    {
+      id: "850e8400-e29b-41d4-a716-446655440004",
+      organizerId: "550e8400-e29b-41d4-a716-446655440000",
+      title: "Example event by demouser1",
+      description: "This is an example event description",
+      location: "Some location",
+      date: "2024-05-01",
+      createdAt: "2024-04-26T12:00:00Z",
+      public: true
+    },
+    {
+      id: "950e8400-e29b-41d4-a716-446655440005",
+      organizerId: "550e8400-e29b-41d4-a716-446655440001",
+      title: "Example event by demouser2",
+      description: "This is another example event description",
+      location: "Another location",
+      date: "2024-05-02",
+      createdAt: "2024-04-26T12:00:00Z",
+      public: false
+    }
+  ])
+   ecoAction_insertMany(data: [
+    {
+      id: "a50e8400-e29b-41d4-a716-446655440006",
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      actionType: "Recycling",
+      createdAt: "2024-04-26T12:00:00Z",
+      date: "2024-04-26",
+      description: "Recycled paper products",
+      pointsImpact: 10
+    },
+    {
+      id: "b50e8400-e29b-41d4-a716-446655440007",
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      actionType: "Composting",
+      createdAt: "2024-04-26T12:00:00Z",
+      date: "2024-04-26",
+      description: "Composted food scraps",
+      pointsImpact: 15
+    }
+  ])
+     comment_insertMany(data: [
+    {
+      id: "c50e8400-e29b-41d4-a716-446655440008",
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      eventId: "850e8400-e29b-41d4-a716-446655440004",
+      content: "Great event!",
+      createdAt: "2024-04-26T12:00:00Z"
+    },
+    {
+      id: "d50e8400-e29b-41d4-a716-446655440009",
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      tipId: "750e8400-e29b-41d4-a716-446655440003",
+      content: "Helpful tip!",
+      createdAt: "2024-04-26T12:00:00Z"
+    }
+  ])
+}

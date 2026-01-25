@@ -1,0 +1,34 @@
+mutation CreateEcoAction($userId: UUID!, $actionType: String!, $date: Date!, $description: String, $pointsImpact: Int!) @auth(level: USER) {
+  ecoAction_insert(data: {userId: $userId, actionType: $actionType, date: $date, description: $description, pointsImpact: $pointsImpact})
+}
+
+query ListPublicEvents @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  events(where: {public: {eq: true}}) {
+    id
+    title
+    description
+    date
+    location
+    imageUrl
+    organizer {
+      id
+      displayName
+      profilePictureUrl
+    }
+  }
+}
+
+mutation CreateTip($userId: UUID!, $content: String!, $title: String!, $category: String, $imageUrl: String) @auth(level: USER) {
+  tip_insert(data: {userId: $userId, content: $content, title: $title, category: $category, imageUrl: $imageUrl})
+}
+
+query GetUserEcoActions($userId: UUID!) @auth(level: USER) {
+  ecoActions(where: {userId: {eq: $userId}}) {
+    id
+    actionType
+    createdAt
+    date
+    description
+    pointsImpact
+  }
+}

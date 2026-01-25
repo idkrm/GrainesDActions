@@ -1,0 +1,45 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  bio: String
+  profilePictureUrl: String
+  location: String
+}
+
+type EcoAction @table {
+  user: User!
+  actionType: String!
+  date: Date!
+  createdAt: Timestamp!
+  description: String
+  pointsImpact: Int
+}
+
+type Event @table {
+  organizer: User!
+  title: String!
+  date: Date!
+  location: String!
+  createdAt: Timestamp!
+  description: String
+  imageUrl: String
+  public: Boolean
+}
+
+type Tip @table {
+  user: User!
+  title: String!
+  content: String!
+  createdAt: Timestamp!
+  category: String
+  imageUrl: String
+}
+
+type Comment @table {
+  user: User!
+  event: Event
+  tip: Tip
+  content: String!
+  createdAt: Timestamp!
+}
