@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { Text, View, FlatList, StyleSheet } from "react-native";
 import React, { useEffect, useState } from "react";
 import { database } from "../firebaseConfig";
