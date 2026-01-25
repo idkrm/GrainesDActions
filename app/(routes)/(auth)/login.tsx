@@ -1,4 +1,4 @@
-import { auth } from "@/firebaseBD/firebaseConfig";
+import { auth } from "../../firebaseConfig";
 import { Link, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
@@ -21,11 +21,12 @@ export default function LoginScreen() {
       console.log("Connecté:", userCred.user.uid);
       router.replace("/(tabs)");
     } catch (error: any) {
-      console.log("Erreur login:", error.code);
+      console.error("Erreur login:", error.code);
 
       // Exemples de gestion d'erreur
       if (error.code === "auth/user-not-found") {
         // afficher "Compte introuvable"
+        console.error("Erreur : ", error.message);
       } else if (error.code === "auth/wrong-password") {
         // afficher "Mot de passe incorrect"
       } else if (error.code === "auth/invalid-email") {
