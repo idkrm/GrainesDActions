@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
-import React, { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebaseBD/firebaseConfig"; // ajuste le chemin si besoin
+import React, { useEffect, useState } from "react";
+import { auth } from "../../firebaseBD/firebaseConfig"; // ajuste le chemin si besoin
 
 export default function StartPage() {
   const [isReady, setIsReady] = useState(false);

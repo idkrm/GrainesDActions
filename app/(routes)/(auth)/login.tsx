@@ -1,12 +1,12 @@
+import { auth } from "@/firebaseBD/firebaseConfig";
 import { Link, useRouter } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import AuthButton from './components/auth/AuthButton';
-import AuthContainer from './components/auth/AuthContainer';
-import AuthInput from './components/auth/AuthInput';
-import { COLORS } from './constants/colors';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from "@/firebaseBD/firebaseConfig";
+import { COLORS } from '../../../constants/colors';
+import AuthButton from '../../components/auth/AuthButton';
+import AuthContainer from '../../components/auth/AuthContainer';
+import AuthInput from '../../components/auth/AuthInput';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function LoginScreen() {
         </Pressable>
       </Link>
 
-      <AuthButton title="Se connecter" onPress={handleLogin} />
+      <AuthButton title="Se connecter" onPress={() => router.replace('/(tabs)')} />
 
       <View style={styles.footerContainer}>
         <Text style={styles.footerText}>Pas encore de compte ? </Text>

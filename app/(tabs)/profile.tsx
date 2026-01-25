@@ -2,14 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../constants/colors';
+import { COLORS } from '../../constants/colors';
 
 export default function ProfileScreen() {
   const router = useRouter();
 
   const handleLogout = () => {
-    console.log("Déconnexion...");
-    router.replace('/login');
+    Alert.alert(
+      "Se déconnecter",
+      "Êtes-vous sûr de vouloir vous déconnecter votre compte ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Se déconnecter", style: "destructive", onPress: () => router.replace('/login') }
+      ]
+    );
   };
 
   const handleDeleteAccount = () => {
@@ -18,7 +24,8 @@ export default function ProfileScreen() {
       "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !",
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Supprimer", style: "destructive", onPress: () => console.log("Suppression...") }
+        // TODO supprimer le compte de la bd
+        { text: "Supprimer", style: "destructive", onPress: () => router.replace('/login') }
       ]
     );
   };
@@ -30,11 +37,12 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Mes informations</Text>
-          <Ionicons name="chevron-forward" size={20} color="#333" />
+          <Link href="../editProfile" asChild><Ionicons name="chevron-forward" size={20} color="#333" /></Link>
         </View>
 
-        <Link href="../profile-edit" asChild>
+        <Link href="../editProfile" asChild>
           <Pressable style={styles.infoBox}>
+            {/* TODO récupérer les infos du user */}
             <Text style={styles.infoText}>Pseudo : blabla</Text>
             <Text style={styles.infoText}>Adresse mail : blabla@test.fr</Text>
           </Pressable>
@@ -47,7 +55,7 @@ export default function ProfileScreen() {
         <Text style={styles.descriptionText}>
           Aucune application n'est connectée à ce compte
         </Text>
-        <Link href="../apps-connect" asChild>
+        <Link href="../appsConnect" asChild>
           <Pressable style={styles.standardButton}>
             <Text style={styles.buttonText}>Connecter des applications</Text>
           </Pressable>
@@ -57,17 +65,21 @@ export default function ProfileScreen() {
       {/* SECTION 3 : BONS D'ACHATS */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Bons d'achats</Text>
-        <Pressable style={styles.standardButton}>
-          <Text style={styles.buttonText}>Voir mes bons d'achats</Text>
-        </Pressable>
+        <Link href="/bonsAchats" asChild>
+          <Pressable style={styles.standardButton}>
+            <Text style={styles.buttonText}>Voir de mes bons d'achats</Text>
+          </Pressable>
+        </Link>
       </View>
 
       {/* SECTION 4 : HISTORIQUE */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Historique</Text>
-        <Pressable style={styles.standardButton}>
-          <Text style={styles.buttonText}>Voir l'historique de mes échanges</Text>
-        </Pressable>
+        <Link href="/transactionsHistory" asChild>
+          <Pressable style={styles.standardButton}>
+            <Text style={styles.buttonText}>Voir l'historique de mes échanges</Text>
+          </Pressable>
+        </Link>
       </View>
 
       {/* SECTION 5 : ACTIONS (DANGER) */}
@@ -127,7 +139,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 10,
     backgroundColor: '#fff',
-    marginBottom: 50,
   },
   infoText: {
     fontSize: 16,
