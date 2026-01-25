@@ -95,7 +95,7 @@ export default function RootLayout() {
       />
 
       <Tabs.Screen
-        name="challenge"
+        name="ListDefis"
         options={{
           title: "Défis",
           tabBarIcon: ({ focused }) => (

@@ -8,13 +8,10 @@ interface Defi {
   id:string;
   categorie:string[];
   co2:number;
+  nom:string;
   description: string;
-  difficulte: number;
-  image: string;
-  nom: string;
   validation: boolean;
 }
-
 
 export default function ListDefis() {
   //stocker la liste de défis (const[variableAffichable, valeurQuiChange]=useState(valeurInitiale))
@@ -45,6 +42,7 @@ export default function ListDefis() {
 
   return (
     <View>
+      <Text>Challenge</Text>
       <FlatList
         data={defis}
         keyExtractor={(item)=>item.id}
