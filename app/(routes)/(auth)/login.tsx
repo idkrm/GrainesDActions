@@ -1,12 +1,13 @@
-import { auth } from "@/firebaseBD/firebaseConfig";
 import { Link, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../../constants/colors';
+import { COLORS } from '@/constants/colors';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
+import { auth } from "@/firebaseBD/firebaseConfig";
+
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -15,22 +16,24 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
+      const email = username.trim().toLowerCase();
+      const pwd = password;
 
-      const userCred = await signInWithEmailAndPassword(auth, username, password);
+      const userCred = await signInWithEmailAndPassword(auth, email, pwd);
 
       console.log("Connecté:", userCred.user.uid);
       router.replace("/(tabs)");
     } catch (error: any) {
-      console.error("Erreur login:", error.code);
+      console.error("Erreur login:", error?.code, error?.message);
 
-      // Exemples de gestion d'erreur
       if (error.code === "auth/user-not-found") {
         // afficher "Compte introuvable"
-        console.error("Erreur : ", error.message);
       } else if (error.code === "auth/wrong-password") {
         // afficher "Mot de passe incorrect"
       } else if (error.code === "auth/invalid-email") {
         // afficher "Email invalide"
+      } else if (error.code === "auth/invalid-credential") {
+        // souvent: email ou mdp incorrect
       } else {
         // afficher "Erreur de connexion"
       }
@@ -42,11 +45,13 @@ export default function LoginScreen() {
       <Text style={styles.title}>Connexion</Text>
 
       <AuthInput
-        label="Nom d'utilisateur"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
+          label="Adresse mail"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+          keyboardType="email-address"
       />
+
 
       <AuthInput
         label="Mot de passe"
@@ -61,7 +66,7 @@ export default function LoginScreen() {
         </Pressable>
       </Link>
 
-      <AuthButton title="Se connecter" onPress={() => router.replace('/(tabs)')} />
+      <AuthButton title="Se connecter" onPress={handleLogin} />
 
       <View style={styles.footerContainer}>
         <Text style={styles.footerText}>Pas encore de compte ? </Text>

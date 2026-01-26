@@ -1,18 +1,20 @@
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../../constants/colors';
-import { auth, db } from "../../../firebaseBD/firebaseConfig";
+import { COLORS } from '@/constants/colors';
+import { auth, db } from "@/firebaseBD/firebaseConfig";
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+
+  // Champs formulaire
+  const [pseudo, setPseudo] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,7 +22,7 @@ export default function RegisterScreen() {
   const [acceptNotifs, setAcceptNotifs] = useState(false);
 
   const [errors, setErrors] = useState<{
-    username?: string;
+    pseudo?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -32,14 +34,23 @@ export default function RegisterScreen() {
     const hasMinLength = password.length >= 6;
     const hasNumber = /\d/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>_\-+=~`[\]\\\/]/.test(password);
-
     return { hasMinLength, hasNumber, hasSpecialChar };
   }, [password]);
+
+  const clearFieldError = (field: keyof typeof errors) => {
+    setErrors(prev => {
+      if (!prev[field]) return prev;
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
+    });
+  };
 
   const handleRegister = async () => {
     const newErrors: typeof errors = {};
 
-    if (!username.trim()) newErrors.username = "Le nom d'utilisateur est requis.";
+    // Validations
+    if (!pseudo.trim()) newErrors.pseudo = "Le pseudo est requis.";
     if (!email.trim()) newErrors.email = "L'adresse mail est requise.";
     if (!password) newErrors.password = "Le mot de passe est requis.";
     if (!confirmPassword) newErrors.confirmPassword = "La confirmation est requise.";
@@ -68,6 +79,7 @@ export default function RegisterScreen() {
     }
 
     try {
+      // 1) Création du compte dans Firebase Auth (connecte automatiquement l’utilisateur)
       const cred = await createUserWithEmailAndPassword(
           auth,
           email.trim().toLowerCase(),
@@ -76,18 +88,32 @@ export default function RegisterScreen() {
 
       const uid = cred.user.uid;
 
-      console.log("CURRENT USER UID:", auth.currentUser?.uid);
-      console.log("CREATED UID:", uid);
+      // 2) Création du document utilisateur dans Firestore
+      // ⚠️ Collection "users" (minuscule) pour matcher tes rules Firestore
+      try {
+        await setDoc(doc(db, "users", uid), {
+          admin: false,
 
-      await setDoc(doc(db, "Users", uid), {
-        username: username.trim(),
-        email: email.trim().toLowerCase(),
-        acceptData,
-        acceptNotifs,
-        createdAt: serverTimestamp(),
-      });
+          // Champs comme sur ton image
+          pseudo: pseudo.trim(),
+          mail: email.trim().toLowerCase(),
+          nb_points: 0,
 
-      router.replace("/(tabs)");
+          defi_en_cours: [],   // tableau vide au départ
+          defi_realise: {},    // map vide au départ (idDéfi -> date)
+          recompense: [],      // tableau vide au départ
+
+          // Champs de ton app
+          acceptData,
+          acceptNotifs,
+          createdAt: serverTimestamp(),
+        });
+      } catch (e) {
+        await deleteUser(cred.user);
+        throw e;
+      }
+
+      router.replace("/login");
     } catch (error: any) {
       console.log("REGISTER ERROR RAW =>", error);
       console.log("REGISTER ERROR CODE =>", error?.code);
@@ -102,130 +128,120 @@ export default function RegisterScreen() {
         firebaseErrors.email = "Email invalide.";
       } else if (code === "auth/weak-password") {
         firebaseErrors.password = "Mot de passe trop faible.";
+      } else if (code === "permission-denied") {
+        firebaseErrors.general = "Permissions Firestore insuffisantes (vérifie les Rules et la collection 'users').";
       } else {
         firebaseErrors.general = `Erreur: ${code ?? "inconnue"} | ${error?.message ?? ""}`;
       }
 
       setErrors(firebaseErrors);
     }
-
-  };
-
-  const clearFieldError = (field: keyof typeof errors) => {
-    setErrors(prev => {
-      if (!prev[field]) return prev;
-      const copy = { ...prev };
-      delete copy[field];
-      return copy;
-    });
   };
 
   return (
-    <ScrollView>
-      <AuthContainer>
-        <Text style={styles.title}>Création de compte</Text>
+      <ScrollView>
+        <AuthContainer>
+          <Text style={styles.title}>Création de compte</Text>
 
-        <AuthInput
-            label="Nom d'utilisateur"
-            value={username}
-            onChangeText={(v: string) => {
-              setUsername(v);
-              clearFieldError("username");
-            }}
-        />
-        {!!errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
-
-        <AuthInput
-            label="Adresse mail"
-            value={email}
-            onChangeText={(v: string) => {
-              setEmail(v);
-              clearFieldError("email");
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-        />
-        {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
-        <AuthInput
-            label="Mot de passe"
-            value={password}
-            onChangeText={(v: string) => {
-              setPassword(v);
-              clearFieldError("password");
-            }}
-            secureTextEntry
-        />
-
-        {/* ✅ Checklist live mot de passe */}
-        <View style={styles.checklistContainer}>
-          <Text style={[styles.checkItem, passwordChecks.hasMinLength ? styles.checkOk : styles.checkKo]}>
-            {passwordChecks.hasMinLength ? "✓" : "•"} 6 caractères minimum
-          </Text>
-          <Text style={[styles.checkItem, passwordChecks.hasNumber ? styles.checkOk : styles.checkKo]}>
-            {passwordChecks.hasNumber ? "✓" : "•"} Au moins un chiffre
-          </Text>
-          <Text style={[styles.checkItem, passwordChecks.hasSpecialChar ? styles.checkOk : styles.checkKo]}>
-            {passwordChecks.hasSpecialChar ? "✓" : "•"} Au moins un caractère spécial
-          </Text>
-        </View>
-
-        {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-
-        <AuthInput
-            label="Confirmation mot de passe"
-            value={confirmPassword}
-            onChangeText={(v: string) => {
-              setConfirmPassword(v);
-              clearFieldError("confirmPassword");
-            }}
-            secureTextEntry
-        />
-        {!!errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
-
-        {/* Checkbox 1 OBLIGATOIRE (collecte des données) */}
-        <View style={styles.checkboxContainer}>
-          <Checkbox
-              style={styles.checkbox}
-              value={acceptData}
-              onValueChange={(v: boolean) => {
-                setAcceptData(v);
-                clearFieldError("acceptData");
+          <AuthInput
+              label="Pseudo"
+              value={pseudo}
+              onChangeText={(v: string) => {
+                setPseudo(v);
+                clearFieldError("pseudo");
               }}
-              color={acceptData ? COLORS.primaryGreen : undefined}
           />
-          <Text style={styles.checkboxLabel}>
-            J'accepte que mes données soient récupérées et utilisées pour le bon fonctionnement de l'application*
-          </Text>
-        </View>
-        {!!errors.acceptData && <Text style={styles.errorText}>{errors.acceptData}</Text>}
+          {!!errors.pseudo && <Text style={styles.errorText}>{errors.pseudo}</Text>}
 
-        {/* Checkbox 2 facultatif (notifications) */}
-        <View style={styles.checkboxContainer}>
-          <Checkbox
-              style={styles.checkbox}
-              value={acceptNotifs}
-              onValueChange={setAcceptNotifs}
-              color={acceptNotifs ? COLORS.primaryGreen : undefined}
+          <AuthInput
+              label="Adresse mail"
+              value={email}
+              onChangeText={(v: string) => {
+                setEmail(v);
+                clearFieldError("email");
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
           />
-          <Text style={styles.checkboxLabel}>
-            Je souhaite activer les notifications de défis quotidiens
-          </Text>
-        </View>
+          {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-        {/* ✅ Erreur générale (optionnel) */}
-        {!!errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
+          <AuthInput
+              label="Mot de passe"
+              value={password}
+              onChangeText={(v: string) => {
+                setPassword(v);
+                clearFieldError("password");
+              }}
+              secureTextEntry
+          />
 
-        {/* Bouton s'inscrire */}
-        <AuthButton title="S'inscrire" onPress={handleRegister} />
+          {/* ✅ Checklist live mot de passe */}
+          <View style={styles.checklistContainer}>
+            <Text style={[styles.checkItem, passwordChecks.hasMinLength ? styles.checkOk : styles.checkKo]}>
+              {passwordChecks.hasMinLength ? "✓" : "•"} 6 caractères minimum
+            </Text>
+            <Text style={[styles.checkItem, passwordChecks.hasNumber ? styles.checkOk : styles.checkKo]}>
+              {passwordChecks.hasNumber ? "✓" : "•"} Au moins un chiffre
+            </Text>
+            <Text style={[styles.checkItem, passwordChecks.hasSpecialChar ? styles.checkOk : styles.checkKo]}>
+              {passwordChecks.hasSpecialChar ? "✓" : "•"} Au moins un caractère spécial
+            </Text>
+          </View>
 
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>Déjà inscrit ? </Text>
-          <Pressable onPress={() => router.back()}>
-            <Text style={[styles.footerText, styles.linkText]}>Se connecter</Text>
-          </Pressable>
-        </View>
-      </AuthContainer>
+          {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+          <AuthInput
+              label="Confirmation mot de passe"
+              value={confirmPassword}
+              onChangeText={(v: string) => {
+                setConfirmPassword(v);
+                clearFieldError("confirmPassword");
+              }}
+              secureTextEntry
+          />
+          {!!errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
+
+          {/* Checkbox 1 OBLIGATOIRE (collecte des données) */}
+          <View style={styles.checkboxContainer}>
+            <Checkbox
+                style={styles.checkbox}
+                value={acceptData}
+                onValueChange={(v: boolean) => {
+                  setAcceptData(v);
+                  clearFieldError("acceptData");
+                }}
+                color={acceptData ? COLORS.primaryGreen : undefined}
+            />
+            <Text style={styles.checkboxLabel}>
+              J'accepte que mes données soient récupérées et utilisées pour le bon fonctionnement de l'application*
+            </Text>
+          </View>
+          {!!errors.acceptData && <Text style={styles.errorText}>{errors.acceptData}</Text>}
+
+          {/* Checkbox 2 facultatif (notifications) */}
+          <View style={styles.checkboxContainer}>
+            <Checkbox
+                style={styles.checkbox}
+                value={acceptNotifs}
+                onValueChange={setAcceptNotifs}
+                color={acceptNotifs ? COLORS.primaryGreen : undefined}
+            />
+            <Text style={styles.checkboxLabel}>
+              Je souhaite activer les notifications de défis quotidiens
+            </Text>
+          </View>
+
+          {!!errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
+
+          <AuthButton title="S'inscrire" onPress={handleRegister} />
+
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>Déjà inscrit ? </Text>
+            <Pressable onPress={() => router.back()}>
+              <Text style={[styles.footerText, styles.linkText]}>Se connecter</Text>
+            </Pressable>
+          </View>
+        </AuthContainer>
       </ScrollView>
   );
 }
@@ -269,16 +285,12 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
     fontSize: 16,
   },
-
-  // ✅ style erreurs sous les champs
   errorText: {
     color: "#D32F2F",
     fontSize: 12,
     marginTop: 6,
     marginBottom: 10,
   },
-
-  // ✅ style checklist live
   checklistContainer: {
     width: "100%",
     marginTop: 8,

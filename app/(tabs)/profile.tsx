@@ -1,22 +1,46 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { COLORS } from '@/constants/colors';
+import { signOut } from "firebase/auth";
+import { auth } from "@/firebaseBD/firebaseConfig"; // adapte le chemin si besoin
 
 export default function ProfileScreen() {
   const router = useRouter();
 
+  const doLogout = async () => {
+    try {
+      console.log("BEFORE signOut, currentUser =", auth.currentUser?.uid);
+      await signOut(auth);
+      console.log("AFTER signOut, currentUser =", auth.currentUser?.uid);
+      router.replace("/login"); //
+    } catch (e) {
+      console.log("LOGOUT ERROR =>", e);
+      Alert.alert("Erreur", "Impossible de se déconnecter.");
+    }
+  };
+
   const handleLogout = () => {
+    // ✅ Web: pas de Alert.alert (souvent instable)
+    if (Platform.OS === "web") {
+      const ok = window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
+      if (!ok) return;
+      void doLogout();
+      return;
+    }
+
     Alert.alert(
-      "Se déconnecter",
-      "Êtes-vous sûr de vouloir vous déconnecter votre compte ?",
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Se déconnecter", style: "destructive", onPress: () => router.replace('/login') }
-      ]
+        "Se déconnecter",
+        "Êtes-vous sûr de vouloir vous déconnecter ?",
+        [
+          { text: "Annuler", style: "cancel" },
+          { text: "Se déconnecter", style: "destructive", onPress: () => void doLogout() },
+        ]
     );
   };
+
+
 
   const handleDeleteAccount = () => {
     Alert.alert(
