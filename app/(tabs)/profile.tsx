@@ -3,8 +3,10 @@ import { Link, useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { COLORS } from '@/constants/colors';
-import { signOut } from "firebase/auth";
-import { auth } from "@/firebaseBD/firebaseConfig"; // adapte le chemin si besoin
+import {deleteUser, signOut} from "firebase/auth";
+import {auth, db} from "@/firebaseBD/firebaseConfig";
+import {deleteDoc} from "@firebase/firestore";
+import {doc} from "firebase/firestore";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -43,16 +45,63 @@ export default function ProfileScreen() {
 
 
   const handleDeleteAccount = () => {
+    const doDelete = async () => {
+      try {
+        const user = auth.currentUser;
+
+        if (!user) {
+          Alert.alert("Erreur", "Aucun utilisateur connecté.");
+          router.replace("/login");
+          return;
+        }
+
+        const uid = user.uid;
+
+        // 1) Supprimer le document Firestore
+        await deleteDoc(doc(db, "Users", uid));
+
+        // 2) Supprimer le compte Auth
+        await deleteUser(user);
+
+        // 3) Redirection
+        router.replace("/login");
+      } catch (e: any) {
+        console.log("DELETE ACCOUNT ERROR =>", e?.code, e?.message);
+
+        // Cas fréquent : Firebase exige une reconnexion récente
+        if (e?.code === "auth/requires-recent-login") {
+          Alert.alert(
+              "Reconnexion requise",
+              "Pour des raisons de sécurité, reconnecte-toi puis réessaie de supprimer ton compte."
+          );
+          // Option : rediriger vers login pour se reconnecter
+          router.replace("/login");
+          return;
+        }
+
+        Alert.alert("Erreur", "Impossible de supprimer le compte. Réessaie.");
+      }
+    };
+
+    // ✅ Sur Web, Alert.alert peut être instable → confirm
+    if (Platform.OS === "web") {
+      const ok = window.confirm(
+          "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !"
+      );
+      if (ok) void doDelete();
+      return;
+    }
+
     Alert.alert(
-      "Attention",
-      "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !",
-      [
-        { text: "Annuler", style: "cancel" },
-        // TODO supprimer le compte de la bd
-        { text: "Supprimer", style: "destructive", onPress: () => router.replace('/login') }
-      ]
+        "Attention",
+        "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !",
+        [
+          { text: "Annuler", style: "cancel" },
+          { text: "Supprimer", style: "destructive", onPress: () => void doDelete() },
+        ]
     );
   };
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>

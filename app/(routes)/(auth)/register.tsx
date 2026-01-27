@@ -1,6 +1,6 @@
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { createUserWithEmailAndPassword, deleteUser, signOut } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -89,29 +89,28 @@ export default function RegisterScreen() {
       const uid = cred.user.uid;
 
       // 2) Création du document utilisateur dans Firestore
-      // ⚠️ Collection "users" (minuscule) pour matcher tes rules Firestore
+      // ✅ On crée exactement les champs visibles dans ta capture (sauf mdp)
+      // ⚠️ Collection "users" en minuscule (doit matcher tes rules)
       try {
-        await setDoc(doc(db, "users", uid), {
+        await setDoc(doc(db, "Users", uid), {
           admin: false,
-
-          // Champs comme sur ton image
-          pseudo: pseudo.trim(),
           mail: email.trim().toLowerCase(),
+          pseudo: pseudo.trim(),
           nb_points: 0,
-
-          defi_en_cours: [],   // tableau vide au départ
-          defi_realise: {},    // map vide au départ (idDéfi -> date)
-          recompense: [],      // tableau vide au départ
-
-          // Champs de ton app
+          defi_en_cours: [],
+          defi_realise: {},
+          recompense: [],
           acceptData,
           acceptNotifs,
           createdAt: serverTimestamp(),
         });
       } catch (e) {
+        // rollback: si Firestore échoue, on supprime le compte Auth créé
         await deleteUser(cred.user);
         throw e;
       }
+
+      await signOut(auth);
 
       router.replace("/login");
     } catch (error: any) {
