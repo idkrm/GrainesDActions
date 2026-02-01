@@ -1,14 +1,14 @@
+import { useRouter } from "expo-router";
+import { collection, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
+  Dimensions,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
-  Dimensions,
-  Pressable,
 } from "react-native";
-import { collection, onSnapshot } from "firebase/firestore";
-import { useRouter } from "expo-router";
 import { database } from "../firebaseConfig"; // adapte si ton export = db
 
 interface Defi {
