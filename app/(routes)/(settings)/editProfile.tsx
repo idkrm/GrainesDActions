@@ -1,41 +1,167 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View
+} from 'react-native';
 import { COLORS } from '../../../constants/colors';
 import EditModal from '../../components/profile/EditProfileModal';
+
+// IMPORTS FIREBASE
+import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, database } from "../../firebaseConfig";
 
 export default function EditProfileScreen() {
   const router = useRouter();
 
-  // États pour les switches
+  const [loading, setLoading] = useState(true);
+  
+  // États des switchs
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [publicEnabled, setPublicEnabled] = useState(true);
 
-  // TODO on récupère les données du user (là c'est les infos du user de base sans compte)
+  // Données utilisateur
   const [userData, setUserData] = useState({
-    pseudo: 'blabla',
-    email: 'blabla@test.fr',
-    password: 'mdp123',
+    pseudo: '',
+    email: '',
+    password: '••••••••',
   });
 
   // pour le modal qui permet de modif les infos du user
   const [modalVisible, setModalVisible] = useState(false);
   const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | null>(null);
 
+  // --- CHARGEMENT DES DONNÉES ---
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        // Email via Auth
+        setUserData(prev => ({
+          ...prev,
+          email: currentUser.email || '',
+        }));
+
+        // Pseudo via Firestore
+        try {
+          const docRef = doc(database, "Users", currentUser.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+
+            setUserData(prev => ({
+              ...prev,
+              pseudo: data.pseudo || 'Erreur de chargement',
+            }));
+
+            // Préférences
+            if (data.notifications_enabled !== undefined) setNotifEnabled(data.notifications_enabled);
+            if (data.is_public !== undefined) setPublicEnabled(data.is_public);
+          } else {
+            console.error("ERREUR : Le document utilisateur n'existe pas");
+          }
+        } catch (error) {
+          console.error("Erreur lecture Firestore:", error);
+        }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubAuth();
+  }, []);
+
   const openEditModal = (field: 'pseudo' | 'email' | 'password') => {
     setActiveField(field);
     setModalVisible(true);
   };
 
-  const handleSaveField = (newValue: string) => {
-    if (activeField) {
-      setUserData({ ...userData, [activeField]: newValue });
+  // --- SAUVEGARDE DES DONNEES ---
+ const handleSaveField = async (newValue: string) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !activeField) return;
 
-      // TODO modifier les données dans firebase
-      console.log(`Mise à jour de ${activeField} vers : ${newValue}`);
+    try {
+      const userRef = doc(database, "Users", currentUser.uid);
+
+      if (activeField === 'pseudo') {
+        await updateDoc(userRef, { pseudo: newValue });
+        setUserData(prev => ({ ...prev, pseudo: newValue }));
+      } 
+      else if (activeField === 'email') {
+        // Vérif format
+        if (!newValue.includes('@') || !newValue.includes('.')) {
+             Alert.alert("Erreur", "Email invalide.");
+             return;
+        }
+
+        await updateEmail(currentUser, newValue);
+
+        // MAJ Firestore
+        await updateDoc(userRef, { email: newValue });
+
+        // MAJ sur l'app
+        setUserData(prev => ({ ...prev, email: newValue }));
+        
+        Alert.alert("Succès", "Votre adresse email a été modifiée.");
+      } 
+      else if (activeField === 'password') {
+        await updatePassword(currentUser, newValue);
+        Alert.alert("Succès", "Mot de passe modifié.");
+      }
+
+    } catch (error: any) {
+      console.error("Erreur update :", error.code);
+
+      if (error.code === 'auth/email-already-in-use') {
+         Alert.alert("Erreur", "Cet email est déjà pris.");
+      } 
+
+      /*
+      else if (error.code === 'auth/requires-recent-login') {
+         Alert.alert("Sécurité", "Reconnectez-vous (Déconnexion/Connexion) pour changer l'email.");
+      } 
+      else if (error.code === 'auth/operation-not-allowed') {
+         Alert.alert("Bloqué par Firebase", "Il faut désactiver 'Protection énumération email' dans la console Firebase > Auth > Paramètres.");
+      } 
+      else {
+         Alert.alert("Erreur", error.message);
+      }*/
     }
   };
+
+  const toggleSwitch = async (type: 'notif' | 'public', value: boolean) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    
+    if (type === 'notif') setNotifEnabled(value);
+    else setPublicEnabled(value);
+
+    try {
+      const userRef = doc(database, "Users", currentUser.uid);
+      await updateDoc(userRef, {
+        [type === 'notif' ? 'notifications_enabled' : 'is_public']: value
+      });
+    } catch (error) {
+      if (type === 'notif') setNotifEnabled(!value);
+      else setPublicEnabled(!value);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primaryGreen} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -54,10 +180,10 @@ export default function EditProfileScreen() {
         <Text style={styles.sectionLabel}>Profil</Text>
         <View style={styles.greenCard}>
 
-          {/* Ligne Pseudo */}
+          {/* Pseudo */}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Pseudo : blabla</Text>
+              <Text style={styles.label}>Pseudo : {userData.pseudo}</Text>
             </View>
             <Pressable onPress={() => openEditModal('pseudo')}>
               <Ionicons name="create-outline" size={24} color="#333" />
@@ -66,10 +192,10 @@ export default function EditProfileScreen() {
 
           <View style={styles.divider} />
 
-          {/* Ligne Email */}
+          {/* Email */}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Adresse mail : blabla@bla.fr</Text>
+              <Text style={styles.label}>Adresse mail : {userData.email}</Text>
             </View>
             <Pressable onPress={() => openEditModal('email')}>
               <Ionicons name="create-outline" size={24} color="#333" />
@@ -78,10 +204,10 @@ export default function EditProfileScreen() {
 
           <View style={styles.divider} />
 
-          {/* Ligne Mot de passe */}
+          {/* Password */}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Mot de passe : ●●●●●●●●</Text>
+              <Text style={styles.label}>Mot de passe : {userData.password}</Text>
             </View>
             <Pressable onPress={() => openEditModal('password')}>
               <Ionicons name="create-outline" size={24} color="#333" />
@@ -90,7 +216,6 @@ export default function EditProfileScreen() {
 
         </View>
 
-        {/* SECTION NOTIFICATIONS */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Notifications</Text>
           <View style={styles.switchRow}>
@@ -98,7 +223,7 @@ export default function EditProfileScreen() {
             <Switch
               trackColor={{ false: "#E0E0E0", true: COLORS.primaryGreen }}
               thumbColor={"#fff"}
-              onValueChange={setNotifEnabled}
+              onValueChange={(val) => toggleSwitch('notif', val)}
               value={notifEnabled}
             />
           </View>
@@ -114,12 +239,14 @@ export default function EditProfileScreen() {
             <Switch
               trackColor={{ false: "#E0E0E0", true: COLORS.primaryGreen }}
               thumbColor={"#fff"}
-              onValueChange={setPublicEnabled}
+              onValueChange={(val) => toggleSwitch('public', val)}
               value={publicEnabled}
             />
           </View>
         </View>
+
       </ScrollView>
+
       <EditModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -135,7 +262,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 60, // Marge pour simuler la Safe Area du haut
+    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',

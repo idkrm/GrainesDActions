@@ -8,12 +8,10 @@ interface Recompense {
     nom?: string;
     description?: string;
     nb_points?: number;
-    logo_url?: string; // On utilise logo_url comme vu précédemment
-    conditions?: string; // Optionnel : si tu as ajouté des conditions
+    image?: string;
 }
 
 export default function RewardPreview() {
-    // Récupération de l'ID passé en paramètre de navigation
     const { id } = useLocalSearchParams<{ id?: string | string[] }>();
     const rewardId = Array.isArray(id) ? id[0] : id;
 
@@ -33,7 +31,6 @@ export default function RewardPreview() {
                     return;
                 }
 
-                // ✅ Changement ici : Collection "Recompenses"
                 const ref = doc(database, "Recompenses", String(rewardId));
                 const snap = await getDoc(ref);
 
@@ -73,22 +70,21 @@ export default function RewardPreview() {
         );
     }
 
-    // Gestion de l'image (soit logo_url, soit une image par défaut locale si tu en as une)
-    const imageUrl = recompense.logo_url && recompense.logo_url.trim() !== "" 
-        ? { uri: recompense.logo_url } 
-        : null; // Tu pourrais mettre un require('../../assets/images/default.png') ici
+    const imageUrl = recompense.image && recompense.image.trim() !== "" 
+        ? { uri: recompense.image } 
+        : null;
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            {/* ✅ Image du magasin ou de la récompense */}
+            {/* Image du magasin ou de la récompense */}
             {imageUrl && (
                 <Image source={imageUrl} style={styles.image} resizeMode="contain" />
             )}
 
-            {/* ✅ Nom de la récompense */}
+            {/* Nom de la récompense */}
             <Text style={styles.title}>{recompense.nom ?? "Récompense sans nom"}</Text>
 
-            {/* ✅ Coût en points */}
+            {/* Coût en points */}
             <View style={styles.badgeRow}>
                 <View style={styles.pointsBadge}>
                     <Text style={styles.pointsText}>
@@ -96,33 +92,18 @@ export default function RewardPreview() {
                     </Text>
                 </View>
                 
-                {/* Exemple d'un autre badge si besoin */}
-                <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Dispo</Text>
-                </View>
             </View>
 
-            {/* ✅ Description */}
+            {/* Description */}
             <Text style={styles.label}>Détails de l'offre</Text>
             <Text style={styles.text}>{recompense.description ?? "Aucune description fournie."}</Text>
-
-            {/* ✅ Conditions (Optionnel, si tu as ce champ dans ta BD) */}
-            {recompense.conditions && (
-                <>
-                    <Text style={styles.label}>Conditions</Text>
-                    <Text style={styles.text}>{recompense.conditions}</Text>
-                </>
-            )}
-
-            {/* Ici, tu pourras ajouter un bouton "Acheter" plus tard */}
-            
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flexGrow: 1, // Important pour le ScrollView
+        flexGrow: 1,
         backgroundColor: "#fff",
         padding: 16,
     },
@@ -136,7 +117,7 @@ const styles = StyleSheet.create({
         height: 180,
         borderRadius: 14,
         marginBottom: 20,
-        backgroundColor: "#fafafa", // Gris très clair si l'image charge mal
+        backgroundColor: "#fafafa",
     },
     title: {
         fontSize: 24,
@@ -152,7 +133,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     pointsBadge: {
-        backgroundColor: "#E8F5E9", // Fond Vert clair
+        backgroundColor: "#E8F5E9",
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 999,
@@ -160,7 +141,7 @@ const styles = StyleSheet.create({
         borderColor: "#C8E6C9",
     },
     pointsText: {
-        color: "#2E7D32", // Texte Vert foncé
+        color: "#2E7D32",
         fontWeight: "700",
         fontSize: 16,
     },
