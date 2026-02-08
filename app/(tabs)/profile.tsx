@@ -2,21 +2,12 @@ import { COLORS } from '@/constants/colors';
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
-<<<<<<< HEAD
 import React from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
-import { COLORS } from '@/constants/colors';
 import {deleteUser, signOut} from "firebase/auth";
-import {auth, db} from "@/firebaseBD/firebaseConfig";
-import {deleteDoc} from "@firebase/firestore";
-import {doc} from "firebase/firestore";
 import BoutonAdmin from '../components/profile/buttonAdmin';
-=======
-import { deleteUser, signOut } from "firebase/auth";
 import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
->>>>>>> e9f5c284da82dadd37e02f68de0eeb0a43a33832
 
 export default function ProfileScreen() {
   const router = useRouter();
