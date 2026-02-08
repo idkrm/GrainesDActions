@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { auth } from "@/firebaseBD/firebaseConfig";
 import { database } from "../../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 import { COLORS } from '../../../constants/colors';
 
 export default function buttonAdmin() {
@@ -10,29 +10,32 @@ export default function buttonAdmin() {
     
     useEffect (() => {
         const verifAdmin = async () => {
-        const userCurrent = auth().currentUser; // Utilisateur connecté
+        const userCurrent = auth.currentUser; // Utilisateur connecté
             if(userCurrent) { // Si l'utilisateur est connecté alors ...
-                firestore()
-                .collection('Users')
-                .doc(userCurrent.uid)
-                .get()
-                .then(doc => {
-                    if (doc.data()?.admin == true){
+                try {
+                    const docUser = doc(database, "Users", userCurrent.uid)
+                    const docSnap = await getDoc(docUser)
+                    const docData = docSnap.data()
+
+                    if(docData?.admin == true) {
                         setAdmin(true);
                     }
-                })
+                } catch(error){
+                    console.error("Erreur Firebase: ", error)
+                }
+                
             }
         };
 
         verifAdmin();
+
     }, []);
     
     return (
         <View style={{ flex: 1, justifyContent: 'center' }}>
         {admin && (
             <Pressable
-                onPress={() => console.log("Accès Autorisé !")}
-            >
+                onPress={() => console.log("Accès Autorisé !")}>
                 <Text style={styles.buttonText}>Gérer les défis</Text>
             </Pressable>
         )}
