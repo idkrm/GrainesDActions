@@ -27,33 +27,61 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
     }
   }, [visible, field, currentValue]);
 
-  const handleSave = () => {
+const handleSave = () => {
+    // CAS 1 : Changement d'email
     if (field === 'email') {
       if (val1 !== val2) {
-        // TODO vérifier que ça correspond bien au format mail
         Alert.alert("Erreur", "Les adresses mail ne correspondent pas.");
-        return;
+        return; 
       }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(val1)) {
+        Alert.alert("Erreur", "Format d'adresse mail invalide.");
+        return; 
+      }
+   
       onSave(val1);
+      onClose();
     } 
+    
+    // CAS 2 : Changement de mot de passe
     else if (field === 'password') {
-      // TODO vérifier que le mdp contient bien tous les trucs de sécurité (au moins 6 caractères, 1 chiffre et 1 caractère spécial)
       if (!val1 || !val2 || !val3) {
         Alert.alert("Erreur", "Veuillez remplir tous les champs.");
         return;
       }
       if (val2 !== val3) {
-        Alert.alert("Erreur", "Le nouveau mot de passe et sa confirmation ne correspondent pas.");
+        Alert.alert("Erreur", "Les mots de passe ne correspondent pas.");
         return;
       }
-      // TODO vérifier que l'ancien mdp (val1) correspond bien à ce qu'il y a dans firebase
+      if (val2.length < 6) {
+        Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
+        return;
+      }
+      if (!/[A-Z]/.test(val2)) {
+        Alert.alert("Erreur", "Le mot de passe doit contenir au moins une majuscule.");
+        return;
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>]/.test(val2)) {
+        Alert.alert("Erreur", "Le mot de passe doit contenir au moins un caractère spécial.");
+        return;
+      }
+
       onSave(val2);
+      onClose();
     } 
-    else {
-      onSave(val1);
-    }
     
-    onClose();
+    // CAS 3 : Changement de pseudo
+    else {
+      if (!val1 || val1.trim().length === 0) {
+        Alert.alert("Erreur", "Le pseudo ne peut pas être vide.");
+        return;
+      }
+      
+      onSave(val1);
+      onClose();
+    }
   };
 
   const getTitle = () => {

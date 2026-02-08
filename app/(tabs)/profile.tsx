@@ -1,5 +1,8 @@
+import { COLORS } from '@/constants/colors';
+import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
+<<<<<<< HEAD
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { COLORS } from '@/constants/colors';
@@ -8,16 +11,54 @@ import {auth, db} from "@/firebaseBD/firebaseConfig";
 import {deleteDoc} from "@firebase/firestore";
 import {doc} from "firebase/firestore";
 import BoutonAdmin from '../components/profile/buttonAdmin';
+=======
+import { deleteUser, signOut } from "firebase/auth";
+import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import React, { useEffect, useState } from 'react';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+>>>>>>> e9f5c284da82dadd37e02f68de0eeb0a43a33832
 
 export default function ProfileScreen() {
   const router = useRouter();
 
+  // --- STOCKER LES INFOS ---
+  const [userData, setUserData] = useState({
+    pseudo: 'Chargement...',
+    email: 'Chargement...'
+  });
+
+  // --- RÉCUPÉRATION DES DONNÉES ---
+  useEffect(() => {
+    const user = auth.currentUser;
+
+    if (user) {
+      setUserData(prev => ({ ...prev, email: user.email || '' }));
+
+      // Ref au document sur Firestore
+      const userDocRef = doc(db, "Users", user.uid);
+
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUserData({
+            pseudo: data.pseudo || 'Chargement...', 
+            email: data.email || user.email || ''
+          });
+        }
+      }, (error) => {
+        console.log("Erreur récupération profil:", error);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
+
   const doLogout = async () => {
     try {
       console.log("BEFORE signOut, currentUser =", auth.currentUser?.uid);
-      await signOut(auth);
+      await signOut(auth); //
       console.log("AFTER signOut, currentUser =", auth.currentUser?.uid);
-      router.replace("/login"); //
+      router.replace("/login"); 
     } catch (e) {
       console.log("LOGOUT ERROR =>", e);
       Alert.alert("Erreur", "Impossible de se déconnecter.");
@@ -59,10 +100,10 @@ export default function ProfileScreen() {
         const uid = user.uid;
 
         // 1) Supprimer le document Firestore
-        await deleteDoc(doc(db, "Users", uid));
+        await deleteDoc(doc(db, "Users", uid)); //
 
         // 2) Supprimer le compte Auth
-        await deleteUser(user);
+        await deleteUser(user); //
 
         // 3) Redirection
         router.replace("/login");
@@ -116,9 +157,9 @@ export default function ProfileScreen() {
 
         <Link href="../editProfile" asChild>
           <Pressable style={styles.infoBox}>
-            {/* TODO récupérer les infos du user */}
-            <Text style={styles.infoText}>Pseudo : blabla</Text>
-            <Text style={styles.infoText}>Adresse mail : blabla@test.fr</Text>
+            {/* ✅ AFFICHAGE DES INFOS RÉCUPÉRÉES */}
+            <Text style={styles.infoText}>Pseudo : {userData.pseudo}</Text>
+            <Text style={styles.infoText}>Adresse mail : {userData.email}</Text>
           </Pressable>
         </Link>
       </View>
@@ -224,7 +265,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     paddingVertical: 5,
-    fontWeight: 500,
+    fontWeight: '500', // Correction : '500' en string ou number, mais 500 number marche sur RN récent
   },
 
   // BOUTONS STANDARD

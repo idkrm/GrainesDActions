@@ -1,11 +1,11 @@
+import { COLORS } from '@/constants/colors';
+import { auth, db } from "@/firebaseBD/firebaseConfig";
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, deleteUser, signOut } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '@/constants/colors';
-import { auth, db } from "@/firebaseBD/firebaseConfig";
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
@@ -94,7 +94,7 @@ export default function RegisterScreen() {
       try {
         await setDoc(doc(db, "Users", uid), {
           admin: false,
-          mail: email.trim().toLowerCase(),
+          email: email.trim().toLowerCase(),
           pseudo: pseudo.trim(),
           nb_points: 0,
           defi_en_cours: [],
