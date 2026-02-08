@@ -32,21 +32,39 @@ export default function buttonAdmin() {
     }, []);
     
     return (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
+        <View>
         {admin && (
-            <Pressable
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+            <Text style={styles.sectionTitle}>Administrateur</Text>
+            <Pressable style={styles.button}
                 onPress={() => console.log("Accès Autorisé !")}>
-                <Text style={styles.buttonText}>Gérer les défis</Text>
+                <Text style={styles.text}>Gérer les défis</Text>
             </Pressable>
+            </View>
         )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    buttonText: {
-        color: '#000',
+    button: {
+        backgroundColor: COLORS.primaryGreen,
+        borderWidth: 2,
+        borderRadius: 25,
+        paddingVertical: 12,
+        width: '100%',
+        borderColor: COLORS.primaryGreen,
+        alignItems: 'center',
+        justifyContent:'center',
+        marginTop: 10,
+        marginBottom: 15,
+    },
+    text: {
+    color: '#fff',
+    fontSize: 15,
+    },
+    sectionTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
-    }
+        fontWeight: "600"
+    },
 })

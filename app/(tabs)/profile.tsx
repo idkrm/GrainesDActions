@@ -189,10 +189,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* SECTION BIS : ADMIN */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Administrateur</Text>
         <BoutonAdmin />
-      </View>
 
       {/* SECTION 5 : ACTIONS (DANGER) */}
       <View style={styles.dangerZone}>
