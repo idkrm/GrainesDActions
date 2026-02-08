@@ -91,49 +91,38 @@ export default function EditProfileScreen() {
     try {
       const userRef = doc(database, "Users", currentUser.uid);
 
+      //PSEUDO
       if (activeField === 'pseudo') {
         await updateDoc(userRef, { pseudo: newValue });
         setUserData(prev => ({ ...prev, pseudo: newValue }));
       } 
+      //EMAIL
       else if (activeField === 'email') {
-        // Vérif format
-        if (!newValue.includes('@') || !newValue.includes('.')) {
-             Alert.alert("Erreur", "Email invalide.");
-             return;
-        }
+         await updateEmail(currentUser, newValue); 
 
-        await updateEmail(currentUser, newValue);
+         // MAJ Firestore
+         await updateDoc(userRef, { email: newValue });
 
+         // MAJ sur l'app
+         setUserData(prev => ({ ...prev, email: newValue }));
+         Alert.alert("Succès", "Email modifié avec succès !");
+      }
+
+      //MOT DE PASSE
+      else if (activeField === 'password') {
+        await updatePassword(currentUser, newValue); 
         // MAJ Firestore
-        await updateDoc(userRef, { email: newValue });
+        //await updateDoc(userRef, { mdp: newValue });
 
         // MAJ sur l'app
-        setUserData(prev => ({ ...prev, email: newValue }));
+        //setUserData(prev => ({ ...prev, mdp: newValue }));
         
-        Alert.alert("Succès", "Votre adresse email a été modifiée.");
-      } 
-      else if (activeField === 'password') {
-        await updatePassword(currentUser, newValue);
-        Alert.alert("Succès", "Mot de passe modifié.");
+        // Si ça passe, on affiche le succès
+        Alert.alert("Succès", "Votre mot de passe a été modifié.");
       }
 
     } catch (error: any) {
-      console.error("Erreur update :", error.code);
-
-      if (error.code === 'auth/email-already-in-use') {
-         Alert.alert("Erreur", "Cet email est déjà pris.");
-      } 
-
-      /*
-      else if (error.code === 'auth/requires-recent-login') {
-         Alert.alert("Sécurité", "Reconnectez-vous (Déconnexion/Connexion) pour changer l'email.");
-      } 
-      else if (error.code === 'auth/operation-not-allowed') {
-         Alert.alert("Bloqué par Firebase", "Il faut désactiver 'Protection énumération email' dans la console Firebase > Auth > Paramètres.");
-      } 
-      else {
-         Alert.alert("Erreur", error.message);
-      }*/
+      console.error("ERREUR UPDATE :", error.code, error.message);
     }
   };
 
@@ -204,7 +193,7 @@ export default function EditProfileScreen() {
 
           <View style={styles.divider} />
 
-          {/* Password */}
+          {/* Mdp */}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Mot de passe : {userData.password}</Text>
