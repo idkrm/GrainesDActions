@@ -7,6 +7,7 @@ import {deleteUser, signOut} from "firebase/auth";
 import {auth, db} from "@/firebaseBD/firebaseConfig";
 import {deleteDoc} from "@firebase/firestore";
 import {doc} from "firebase/firestore";
+import BoutonAdmin from '../components/profile/buttonAdmin';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -153,6 +154,12 @@ export default function ProfileScreen() {
             <Text style={styles.buttonText}>Voir l'historique de mes échanges</Text>
           </Pressable>
         </Link>
+      </View>
+
+      {/* SECTION BIS : ADMIN */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Administrateur</Text>
+        <BoutonAdmin />
       </View>
 
       {/* SECTION 5 : ACTIONS (DANGER) */}
