@@ -80,6 +80,15 @@ export default function ProfileScreen() {
     }
   };
 
+  const doAdmin = async () => {
+    try {
+      // si admin is true then
+      router.replace('/(tabs)/(admin)')
+    } catch(error){
+      console.error("ACCESS ADMIN ERROR : ", error)
+    }
+  };
+
   const handleLogout = () => {
     // ✅ Web: pas de Alert.alert (souvent instable)
     if (Platform.OS === "web") {
