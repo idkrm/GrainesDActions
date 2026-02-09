@@ -2,11 +2,9 @@ import { COLORS } from '@/constants/colors';
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
-import React from 'react';
-import {deleteUser, signOut} from "firebase/auth";
-import BoutonAdmin from '../components/profile/buttonAdmin';
-import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
-import { useEffect, useState } from 'react';
+import { deleteUser, signOut } from "firebase/auth";
+import { deleteDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
+import React, { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
@@ -44,6 +42,32 @@ export default function ProfileScreen() {
     }
   }, []);
 
+  // --- VÉRIFICATION UTILISATEUR ADMIN ---
+  const [admin, setAdmin] = useState<boolean>(false);
+  
+    useEffect (() => {
+        const verifAdmin = async () => {
+        const userCurrent = auth.currentUser; // Utilisateur connecté
+            if(userCurrent) { // Si l'utilisateur est connecté alors ...
+                try {
+                    const docUser = doc(db, "Users", userCurrent.uid)
+                    const docSnap = await getDoc(docUser)
+                    const docData = docSnap.data()
+
+                    if(docData?.admin == true) {
+                        setAdmin(true);
+                    }
+                } catch(error){
+                    console.error("Erreur Firebase: ", error)
+                }
+                
+            }
+        };
+
+        verifAdmin();
+
+    }, []);
+
   const doLogout = async () => {
     try {
       console.log("BEFORE signOut, currentUser =", auth.currentUser?.uid);
@@ -74,8 +98,6 @@ export default function ProfileScreen() {
         ]
     );
   };
-
-
 
   const handleDeleteAccount = () => {
     const doDelete = async () => {
@@ -189,7 +211,17 @@ export default function ProfileScreen() {
       </View>
 
       {/* SECTION BIS : ADMIN */}
-        <BoutonAdmin />
+      <View>
+          {admin && (
+              <View style={{ flex: 1, justifyContent: 'center' }}>
+              <Text style={styles.sectionTitle}>Administrateur</Text>
+              <Pressable style={styles.button}
+                  onPress={() => console.log("Accès Autorisé !")}>
+                  <Text style={styles.text}>Gérer les défis</Text>
+              </Pressable>
+              </View>
+          )}
+      </View>
 
       {/* SECTION 5 : ACTIONS (DANGER) */}
       <View style={styles.dangerZone}>
