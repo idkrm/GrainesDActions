@@ -89,8 +89,6 @@ export default function RegisterScreen() {
       const uid = cred.user.uid;
 
       // 2) Création du document utilisateur dans Firestore
-      // ✅ On crée exactement les champs visibles dans ta capture (sauf mdp)
-      // ⚠️ Collection "users" en minuscule (doit matcher tes rules)
       try {
         await setDoc(doc(db, "Users", uid), {
           admin: false,
@@ -100,8 +98,8 @@ export default function RegisterScreen() {
           defi_en_cours: [],
           defi_realise: {},
           recompense: [],
-          acceptData,
-          acceptNotifs,
+          is_public: acceptData,
+          notifications_enabled: acceptNotifs,
           createdAt: serverTimestamp(),
         });
       } catch (e) {
@@ -111,7 +109,6 @@ export default function RegisterScreen() {
       }
 
       await signOut(auth);
-
       router.replace("/login");
     } catch (error: any) {
       console.log("REGISTER ERROR RAW =>", error);
