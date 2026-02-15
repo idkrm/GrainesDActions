@@ -28,6 +28,7 @@ interface Defi {
     co2?: number;
     nom?: string;
     description?: string;
+    pourquoi?:string;
     defiEnCours?:boolean;
     validation?: boolean;
     difficulte?: number;
@@ -270,7 +271,7 @@ export default function ChallengeDescription() {
                 <View style={styles.rewardContainer}>
                     <View style={styles.rewardBadge}>
                         <MaterialCommunityIcons name="trophy-outline" size={20} color="#F57C00" />
-                        <Text style={styles.rewardText}>Gain : +{defi.co2 ?? 0} points</Text>
+                        <Text style={styles.rewardText}>Gain : +{((defi.difficulte ?? 0) * 10)} points</Text>
                     </View>
                 </View>
 
@@ -291,7 +292,7 @@ export default function ChallengeDescription() {
                 <Text style={styles.descriptionText}>{defi.description ?? "Pas de description."}</Text>
 
                 <Text style={styles.sectionTitle}>Pourquoi est-ce important ?</Text>
-                <Text style={styles.descriptionText}>{defi.description ?? "Pas de description."}</Text>
+                <Text style={styles.descriptionText}>{defi.pourquoi ?? "Pas de description."}</Text>
 
                 {/* petit badge si déjà accepté */}
                 {alreadyAccepted && (
