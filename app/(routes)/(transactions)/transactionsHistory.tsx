@@ -12,7 +12,7 @@ import {
 import TransactionCard from '../../components/profile/transactionCard';
 
 // IMPORTS FIREBASE
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, database } from "../../firebaseConfig";
 
 type HistoryItem = {
@@ -21,6 +21,13 @@ type HistoryItem = {
   color: string;
   lines: string[];
   date_achat: string; // pour le tri
+};
+
+const formaterDate = (timestamp: any) => {
+  if (timestamp.toDate) {
+    return timestamp.toDate().toLocaleDateString("fr-FR");
+  }
+  return "Date inconnue";
 };
 
 export default function TransactionsScreen() {
@@ -35,99 +42,111 @@ export default function TransactionsScreen() {
         const user = auth.currentUser;
         if (!user) return;
 
-        // recup du document de l'utilisation
-        const userDocRef = doc(database, "Users", user.uid);
-        const userSnap = await getDoc(userDocRef);
+        // recuperation des docs correspondant à l'utilisateur connecte
+        const qRecompensesUser = query(
+          collection(database, "RecompenseUser"),
+          where("id_user", "==", user.uid)
+        );
 
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          // recup tableau recompense
-          const rawRewards = userData.recompense || [];
+        const snapshot = await getDocs(qRecompensesUser);
 
-          // recup info des recompenses (nom, magasion/asso, description, points)
-          const info = await Promise.all(rawRewards.map(async (item: any) => {
-            let nomRecompense = "Récompense";
-            let descriptionRecompense = "";
-            let points = "";
-            let isActionEcologique = false; 
-
-            if (item.id_recompense) {
-              const recRef = doc(database, "Recompenses", String(item.id_recompense));
-              const recSnap = await getDoc(recRef);
-              if (recSnap.exists()) {
-                const recData = recSnap.data();
-                nomRecompense = recData.nom;
-                descriptionRecompense = recData.description;
-                points = recData.nb_points;
-
-                // si don ou plantation
-                const lowerName = nomRecompense.toLowerCase();
-                if (lowerName.includes('don') || lowerName.includes('arbre') || lowerName.includes('plantation')) {
-                  isActionEcologique = true;
-                }
-              }
-            }
-
-            // nom asso ou magasin
-            let nom = "Inconnu";
-
-            if (isActionEcologique) {
-              // cas don : nom de l'asso
-              if (item.id_asso) {
-                const assoRef = doc(database, "Assos", String(item.id_asso));
-                const assoSnap = await getDoc(assoRef);
-                if (assoSnap.exists()) {
-                  nom = assoSnap.data().nom;
-                } else {
-                    nom = "Association inconnue";
-                }
-              }
-            } else {
-              // cas bon d'achat : nom du magasin
-              if (item.id_magasin) {
-                const magRef = doc(database, "Magasins", String(item.id_magasin));
-                const magSnap = await getDoc(magRef);
-                if (magSnap.exists()) {
-                  nom = magSnap.data().nom;
-                } else {
-                    nom = "Magasin inconnu";
-                }
-              }
-            }
-
-            // si bon d'achat non utilise
-            const aEteUtilise = item.date_utilisation && item.date_utilisation !== "";
-            
-            if (!isActionEcologique && !aEteUtilise) {
-              return null; // retourne null pour l'item actuel
-            }
-
-            const displayLines = [
-              `Détail : ${descriptionRecompense}`,
-              isActionEcologique ? `Association : ${nom}` : `Magasin : ${nom}`,
-              `Obtenu le : ${item.date_achat}`,
-              points ? `Coût : ${points} points` : null
-            ];
-
-            if (aEteUtilise) {
-              displayLines.push(`Utilisé le : ${item.date_utilisation}`);
-            }
-
-            if(isActionEcologique) {
-              displayLines.push(`Montant : ${item.montant} €`);
-            }
-
-            return {
-              id: String(item.id_achat),
-              title: nomRecompense, 
-              color: isActionEcologique ? '#65B369' : '#BDE2EB', 
-              date_achat: item.date_achat,
-              lines: displayLines.filter(Boolean) as string[]
-            };
-          }));
-          const validItems = info.filter((item) => item !== null) as HistoryItem[];
-          setHistoryItems(validItems.reverse()); // pour voir les derniers ajouts en haut
+        // si aucun user
+        if (snapshot.empty) {
+          setHistoryItems([]);
+          setLoading(false);
+          return;
         }
+
+        // recompense user
+        const recompense = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        // details recompenses (nom, asso/magasin, montant, detail, points)
+        const info = await Promise.all(recompense.map(async (item: any) => {
+          let nomRecompense = "Récompense";
+          let descriptionRecompense = "";
+          let points = "";
+          let isDon = false; 
+
+          if (item.id_recompense) {
+            const recRef = doc(database, "Recompenses", String(item.id_recompense));
+            const recSnap = await getDoc(recRef);
+            if (recSnap.exists()) {
+              const recData = recSnap.data();
+              nomRecompense = recData.nom;
+              descriptionRecompense = recData.description;
+              points = recData.nb_points;
+
+              const lowerName = nomRecompense.toLowerCase();
+              if (lowerName.includes('don') || lowerName.includes('arbre') || lowerName.includes('plantation')) {
+                isDon = true;
+              }
+            }
+          }
+
+          // nom asso/magasin
+          let nom = "Inconnu";
+
+          if (isDon) {
+            // cas don : nom de l'asso
+            if (item.id_asso) {
+              const assoRef = doc(database, "Assos", String(item.id_asso));
+              const assoSnap = await getDoc(assoRef);
+              if (assoSnap.exists()) {
+                nom = assoSnap.data().nom;
+              } else {
+                nom = "Association inconnue";
+              }
+            }
+          } else {
+            // cas bon d'achat : nom du magasin
+            if (item.id_magasin) {
+              const magRef = doc(database, "Magasins", String(item.id_magasin));
+              const magSnap = await getDoc(magRef);
+              if (magSnap.exists()) {
+                nom = magSnap.data().nom;
+              } else {
+                nom = "Magasin inconnu";
+              }
+            }
+          }
+
+          // si bon d'achat non utilise
+          const aEteUtilise = item.date_utilisation && item.date_utilisation !== "";
+          
+          if (!isDon && !aEteUtilise) {
+            return null;
+          }
+
+          const displayLines = [
+            points ? `Coût : ${points} points` : null,
+            `Détail : ${descriptionRecompense}`,
+            `Obtenu le : ${formaterDate(item.date_achat)}`
+          ];
+
+          if (aEteUtilise) {
+            displayLines.push(`Utilisé le : ${formaterDate(item.date_utilisation)}`);
+          }
+
+          // montant si don
+          if(isDon && item.montant) {
+            displayLines.push(`Montant : ${item.montant} €`);
+          }
+
+          return {
+            id: item.id,
+            title: nom, 
+            color: isDon ? '#65B369' : '#BDE2EB', 
+            date_achat: item.date_achat,
+            lines: displayLines.filter(Boolean) as string[]
+          };
+        }));
+
+        const validItems = info.filter((item) => item !== null) as HistoryItem[];
+        
+        setHistoryItems(validItems.reverse()); // pour voir les derniers ajouts en haut
 
       } catch (error) {
         console.error("Erreur récupération historique:", error);
@@ -164,7 +183,7 @@ export default function TransactionsScreen() {
         ) : (
           historyItems.map((item, index) => (
             <TransactionCard
-              key={index}
+              key={item.id}
               title={item.title}
               color={item.color}
               lines={item.lines}

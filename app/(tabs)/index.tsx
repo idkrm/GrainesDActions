@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { Link, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -9,10 +10,10 @@ import {
   Text,
   View
 } from 'react-native';
-import { COLORS } from '@/constants/colors';
 
+// IMPORTS FIREBASE
 import { auth, db } from "@/firebaseBD/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 
 interface Defi {
   nom?: string;
@@ -34,6 +35,10 @@ export default function HomeScreen() {
   const [defisEnCours, setDefisEnCours] = useState<DefiCard[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  // stockage des statistiques
+  const [stats, setStats] = useState({ co2: 0, arbres: 0, dons: 0 });
+
+  // chargement des defis
   const loadDefisEnCours = useCallback(async () => {
     try {
       setLoadingDefis(true);
@@ -80,6 +85,74 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // calcul des stats
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // co2
+    const qDefis = query(
+      collection(db, "HistoriqueDefis"), 
+      where("UserID", "==", user.uid),
+      where("State", "==", "Terminé")
+    );
+
+    const statco2 = onSnapshot(qDefis, async (snapshot) => {
+      let totalCo2 = 0;
+      
+      // recup defis termine
+      const defisIds = snapshot.docs.map(doc => doc.data().DefisID);
+
+      // valeur co2 dans la table Defi
+      await Promise.all(defisIds.map(async (id) => {
+        if (!id) return;
+        const defiSnap = await getDoc(doc(db, "Defis", String(id)));
+        if (defiSnap.exists()) {
+           const val = defiSnap.data().co2;
+           if (val) totalCo2 += Number(val);
+        }
+      }));
+
+      // maj stat co2
+      setStats(prev => ({ ...prev, co2: Math.round(totalCo2 * 10) / 10 }));
+    });
+
+    // arbres et dons
+    const qReco = query(
+      collection(db, "RecompenseUser"), 
+      where("id_user", "==", user.uid)
+    );
+
+    const statArbreDon = onSnapshot(qReco, (snapshot) => {
+      let totalArbres = 0;
+      let totalDons = 0;
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+
+        // arbres
+        if (data.id_recompense == 2) {
+          totalArbres += 1;
+        }
+
+        // dons
+        if (data.id_asso && data.montant) {
+          totalDons += Number(data.montant);
+        }
+      });
+
+      // maj stat arbre don
+      setStats(prev => ({ ...prev, arbres: totalArbres, dons: totalDons }));
+    });
+
+    return () => {
+      statco2();
+      statArbreDon();
+    };
+
+  }, []);
+
+  // chargement des defis en cours
   useEffect(() => {
     loadDefisEnCours();
   }, [loadDefisEnCours]);
@@ -87,6 +160,7 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadDefisEnCours();
+    // chargement des stats automatique
     setRefreshing(false);
   }, [loadDefisEnCours]);
 
@@ -106,13 +180,13 @@ export default function HomeScreen() {
           }
       >
 
-        {/* SECTION 1 : DÉFIS EN COURS (scroll horizontal) */}
+        {/* SECTION 1 : DÉFIS EN COURS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Défis relevés</Text>
 
           {loadingDefis ? (
               <View style={styles.loadingBox}>
-                <ActivityIndicator />
+                <ActivityIndicator color={COLORS.primaryGreen} />
               </View>
           ) : defisEnCours.length === 0 ? (
               <View style={styles.emptyBox}>
@@ -142,7 +216,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* SECTION 2 : "TA SEMAINE" */}
+        {/* SECTION 2 : TA SEMAINE */}
         <View style={styles.section}>
           <View style={styles.headerRow}>
             <Text style={styles.sectionTitle}>Ta semaine</Text>
@@ -163,22 +237,22 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* SECTION 3 : "TES STATISTIQUES" */}
+        {/* SECTION 3 : TES STATISTIQUES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tes statistiques</Text>
 
           <StatCard
-              value="XX kg"
+              value={`${stats.co2} kg`}
               label="de CO2 évités"
               borderColor={COLORS.primaryBlue}
           />
           <StatCard
-              value="XX"
+              value={`${stats.arbres}`}
               label="arbres plantés"
               borderColor={COLORS.primaryGreen}
           />
           <StatCard
-              value="XX€"
+              value={`${stats.dons}€`}
               label="de dons réalisés"
               borderColor={COLORS.primaryYellow}
           />
