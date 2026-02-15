@@ -28,6 +28,7 @@ interface Defi {
     co2?: number;
     nom?: string;
     description?: string;
+    defiEnCours?:boolean;
     validation?: boolean;
     difficulte?: number;
     image?: string;
@@ -118,17 +119,17 @@ export default function ChallengeDescription() {
             setAccepting(true);
 
             const userRef = doc(db, "Users", user.uid);
-            const currentId = String(defiId);
+            const currentId = Number(defiId);
 
             await runTransaction(db, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
 
-                const defiEnCours = (userSnap.data()?.defi_en_cours ?? []) as string[];
+                const defiEnCours = (userSnap.data()?.defi_en_cours ?? []) as number[];
 
                 //  Règle 1 : pas 2 fois le même défi
                 if (defiEnCours.includes(currentId)) {
-                    throw new Error("Tu as déjà accepté ce défi.");
+                    throw new Error("Tu as déjà accepté ce défi !");
                 }
 
                 //  Règle 2 : max 3 défis en cours
