@@ -80,15 +80,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const doAdmin = async () => {
-    try {
-      // si admin is true then
-      router.replace('/(tabs)/(admin)')
-    } catch(error){
-      console.error("ACCESS ADMIN ERROR : ", error)
-    }
-  };
-
   const handleLogout = () => {
     // ✅ Web: pas de Alert.alert (souvent instable)
     if (Platform.OS === "web") {
@@ -219,15 +210,25 @@ export default function ProfileScreen() {
         </Link>
       </View>
 
-      {/* SECTION BIS : ADMIN */}
+      {/* SECTION 5 : ADMIN */}
       <View>
           {admin && (
-              <View style={{ flex: 1, justifyContent: 'center' }}>
-              <Text style={styles.sectionTitle}>Administrateur</Text>
-              <Pressable style={styles.button}
-                  onPress={() => console.log("Accès Autorisé !")}>
-                  <Text style={styles.text}>Gérer les défis</Text>
-              </Pressable>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Administrateur</Text>
+                
+                <Link href="/GererDefis" asChild>
+                  <Pressable style={styles.standardButton}>
+                      <Text style={styles.buttonText}>Gestion des défis</Text>
+                  </Pressable>
+                </Link>
+                <View style={{ marginTop: 15 }}>
+                  <Link href="/ValiderDefis" asChild>
+                    <Pressable style={styles.standardButton}>
+                        <Text style={styles.buttonText}>Validation des défis</Text>
+                    </Pressable>
+                  </Link>
+                </View>
+
               </View>
           )}
       </View>
