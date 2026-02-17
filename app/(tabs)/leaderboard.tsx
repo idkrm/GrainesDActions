@@ -1,24 +1,45 @@
-import React, { useState } from 'react';
+import { db } from '@/firebaseBD/firebaseConfig';
+import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../../constants/colors';
 
+interface Users {
+  id?: string;
+  nb_points?: number;
+  pseudo?: string;
+}
+
 export default function LeaderboardScreen() {
   const [activeTab, setActiveTab] = useState<'week' | 'month'>('week');
+  const [classement, setClassement] = useState<Users[]>([]);
 
-  // TO DO récupérer les données des users
-  const data = [
-    { id: 1, name: 'User1', points: 1250, rank: 1 },
-    { id: 2, name: 'User2', points: 980, rank: 2 },
-    { id: 3, name: 'User3', points: 850, rank: 3 },
-    { id: 4, name: 'User4', points: 720, rank: 4 },
-    { id: 5, name: 'User5', points: 650, rank: 5 },
-    { id: 6, name: 'User6', points: 500, rank: 6 },
-    { id: 7, name: 'User7', points: 430, rank: 7 },
-  ];
+  // --- Récupération des données de la collection Users ---
+  useEffect(() => {
+    // --- Référence à la collection Users ---
+    const usersRef = collection(db, 'Users');
+
+    // --- Requête permettant de trier les points et mettre une limite d'utilisateurs sur le classement ---
+    const req = query(
+      usersRef,
+      orderBy("nb_points", "desc"),
+      limit(5),
+    )
+
+    // --- Changement en temps réel des données à partir de la base de données ---
+    const change = onSnapshot(req, (snapshot) => {
+      const users = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ... doc.data() as Users[]
+      }))
+      setClassement(users)
+    })
+    return () => change();
+  })
 
   // On sépare le podium (top 3) du reste de la liste
-  const topThree = data.slice(0, 3);
-  const restOfList = data.slice(3);
+  const topThree = classement.slice(0, 3);
+  const restOfList = classement.slice(3);
 
   return (
     <View style={styles.container}>
@@ -49,7 +70,8 @@ export default function LeaderboardScreen() {
         {/* RANK 2 */}
         <PodiumBar 
           rank={2} 
-          points={topThree[1].points} 
+          username={topThree[1]?.pseudo}
+          points={topThree[1]?.nb_points} 
           color={COLORS.primaryGreen} 
           height={160} 
         />
@@ -57,7 +79,8 @@ export default function LeaderboardScreen() {
         {/* RANK 1 */}
         <PodiumBar 
           rank={1} 
-          points={topThree[0].points} 
+          username={topThree[0]?.pseudo}
+          points={topThree[0]?.nb_points} 
           color={COLORS.primaryBlue}
           height={220} 
           isFirst
@@ -65,8 +88,9 @@ export default function LeaderboardScreen() {
 
         {/* RANK 3 */}
         <PodiumBar 
-          rank={3} 
-          points={topThree[2].points} 
+          rank={3}
+          username={topThree[2]?.pseudo}
+          points={topThree[2]?.nb_points} 
           color={COLORS.primaryYellow} 
           height={120} 
         />
@@ -77,9 +101,10 @@ export default function LeaderboardScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           {restOfList.map((item, index) => (
             <View key={item.id} style={styles.listItem}>
-              <Text style={styles.rankText}>#{item.rank}</Text>
+              <Text style={styles.rankText}>#{index + 4}</Text>
+              <Text style= {{marginLeft: 20, fontSize: 16, fontWeight: 500}}>{item.pseudo}</Text>
               <View style={{flex: 1}} /> 
-              <Text style={styles.pointsText}>[{item.points} points]</Text>
+              <Text style={styles.pointsText}>[{item.nb_points} points]</Text>
             </View>
           ))}
           <View style={{height: 20}} />
@@ -91,11 +116,12 @@ export default function LeaderboardScreen() {
 }
 
 // composant pour les barres du podium
-const PodiumBar = ({ rank, points, color, height, isFirst }: any) => (
+const PodiumBar = ({ rank, points, color, height, username, isFirst }: any) => (
   <View style={styles.barWrapper}>
     <View style={[styles.bar, { backgroundColor: color, height: height }]}>
       <Text style={styles.barRank}>{rank}</Text>
     </View>
+    <Text>{username}</Text>
     <Text style={styles.barPoints}>[{points} pts]</Text>
   </View>
 );
