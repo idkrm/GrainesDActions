@@ -1,6 +1,6 @@
 import { COLORS } from '@/constants/colors';
 import { Link, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,7 +13,15 @@ import {
 
 // IMPORTS FIREBASE
 import { auth, db } from "@/firebaseBD/firebaseConfig";
-import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  where,
+  Timestamp
+} from "firebase/firestore";
 
 interface Defi {
   nom?: string;
@@ -27,6 +35,18 @@ type DefiCard = {
   nom: string;
 };
 
+// Helpers dates (Lundi=0..Dimanche=6)
+const mondayStartOfWeek = (date: Date) => {
+  const d = new Date(date);
+  const day = (d.getDay() + 6) % 7; // Lundi=0
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const toKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
 export default function HomeScreen() {
   const router = useRouter();
   const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -37,6 +57,78 @@ export default function HomeScreen() {
 
   // stockage des statistiques
   const [stats, setStats] = useState({ co2: 0, arbres: 0, dons: 0 });
+
+  // ✅ semaine affichée (0 = semaine actuelle, -1 précédente, +1 suivante)
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // ✅ jours verts: Set<"YYYY-MM-DD"> où l'user a un défi validé
+  const [greenDays, setGreenDays] = useState<Set<string>>(new Set());
+
+  // ✅ calcule la semaine affichée (7 dates)
+  const weekDates = useMemo(() => {
+    const today = new Date();
+    const base = new Date(today);
+    base.setDate(base.getDate() + weekOffset * 7);
+
+    const start = mondayStartOfWeek(base);
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  }, [weekOffset]);
+
+  // ✅ libellé du header semaine (ex: "10–16 Février")
+  const weekLabel = useMemo(() => {
+    const start = weekDates[0];
+    const end = weekDates[6];
+
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+
+    const monthName = (d: Date) =>
+        d.toLocaleDateString('fr-FR', { month: 'long' });
+
+    const startMonth = monthName(start);
+    const endMonth = monthName(end);
+
+    if (start.getMonth() !== end.getMonth()) {
+      return `${startDay} ${startMonth} – ${endDay} ${endMonth}`;
+    }
+    return `${startDay}–${endDay} ${startMonth}`;
+  }, [weekDates]);
+
+  // ✅ Charger les jours "verts" depuis HistoriqueDefis (défis validés)
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      setGreenDays(new Set());
+      return;
+    }
+
+    const qWeek = query(
+        collection(db, "HistoriqueDefis"),
+        where("UserID", "==", user.uid),
+        where("State", "==", "Valide") // 🔁 si tu veux: "Terminé"
+    );
+
+    const unsub = onSnapshot(qWeek, (snapshot) => {
+      const set = new Set<string>();
+
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as any;
+        const ts: Timestamp | undefined = data?.DateValidation;
+        if (!ts) return;
+
+        set.add(toKey(ts.toDate())); // "YYYY-MM-DD"
+      });
+
+      setGreenDays(set);
+    });
+
+    return () => unsub();
+  }, []);
 
   // chargement des defis
   const loadDefisEnCours = useCallback(async () => {
@@ -90,67 +182,78 @@ export default function HomeScreen() {
     const user = auth.currentUser;
     if (!user) return;
 
-    // co2
-    const qDefis = query(
-      collection(db, "HistoriqueDefis"), 
-      where("UserID", "==", user.uid),
-      where("State", "==", "Terminé")
+    // ✅ co2: uniquement défis VALIDÉS (admin)
+    const qDefisValides = query(
+        collection(db, "HistoriqueDefis"),
+        where("UserID", "==", user.uid),
+        where("State", "==", "Valide")
     );
 
-    const statco2 = onSnapshot(qDefis, async (snapshot) => {
-      let totalCo2 = 0;
-      
-      // recup defis termine
-      const defisIds = snapshot.docs.map(doc => doc.data().DefisID);
+    const unsubCo2 = onSnapshot(qDefisValides, async (snapshot) => {
+      try {
+        let totalCo2 = 0;
 
-      // valeur co2 dans la table Defi
-      await Promise.all(defisIds.map(async (id) => {
-        if (!id) return;
-        const defiSnap = await getDoc(doc(db, "Defis", String(id)));
-        if (defiSnap.exists()) {
-           const val = defiSnap.data().co2;
-           if (val) totalCo2 += Number(val);
-        }
-      }));
+        // ids des défis validés
+        const defisIds = snapshot.docs
+            .map((d) => d.data()?.DefisID)
+            .filter(Boolean) as string[];
 
-      // maj stat co2
-      setStats(prev => ({ ...prev, co2: Math.round(totalCo2 * 10) / 10 }));
+        // récupérer chaque défi et additionner son co2
+        await Promise.all(
+            defisIds.map(async (id) => {
+              const defiSnap = await getDoc(doc(db, "Defis", String(id)));
+              if (defiSnap.exists()) {
+                const data = defiSnap.data() as any;
+                const val = data?.co2;
+
+                // ⚠️ important: co2 peut être 0, donc on teste number
+                if (typeof val === "number" && !Number.isNaN(val)) {
+                  totalCo2 += val;
+                } else if (val !== undefined && val !== null) {
+                  // au cas où co2 serait stocké en string
+                  const parsed = Number(val);
+                  if (!Number.isNaN(parsed)) totalCo2 += parsed;
+                }
+              }
+            })
+        );
+
+        setStats((prev) => ({ ...prev, co2: Math.round(totalCo2 * 10) / 10 }));
+      } catch (e) {
+        console.log("STAT CO2 ERROR =>", e);
+        setStats((prev) => ({ ...prev, co2: 0 }));
+      }
     });
 
     // arbres et dons
     const qReco = query(
-      collection(db, "RecompenseUser"), 
-      where("id_user", "==", user.uid)
+        collection(db, "RecompenseUser"),
+        where("id_user", "==", user.uid)
     );
 
-    const statArbreDon = onSnapshot(qReco, (snapshot) => {
+    const unsubArbreDon = onSnapshot(qReco, (snapshot) => {
       let totalArbres = 0;
       let totalDons = 0;
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
 
         // arbres
-        if (data.id_recompense == 2) {
-          totalArbres += 1;
-        }
+        if (data.id_recompense == 2) totalArbres += 1;
 
         // dons
-        if (data.id_asso && data.montant) {
-          totalDons += Number(data.montant);
-        }
+        if (data.id_asso && data.montant) totalDons += Number(data.montant);
       });
 
-      // maj stat arbre don
-      setStats(prev => ({ ...prev, arbres: totalArbres, dons: totalDons }));
+      setStats((prev) => ({ ...prev, arbres: totalArbres, dons: totalDons }));
     });
 
     return () => {
-      statco2();
-      statArbreDon();
+      unsubCo2();
+      unsubArbreDon();
     };
-
   }, []);
+
 
   // chargement des defis en cours
   useEffect(() => {
@@ -160,7 +263,6 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadDefisEnCours();
-    // chargement des stats automatique
     setRefreshing(false);
   }, [loadDefisEnCours]);
 
@@ -227,13 +329,38 @@ export default function HomeScreen() {
             </Link>
           </View>
 
+          {/* NAV SEMAINE */}
+          <View style={styles.weekHeader}>
+            <Pressable onPress={() => setWeekOffset((w) => w - 1)} hitSlop={10}>
+              <Text style={styles.weekArrow}>{'<'}</Text>
+            </Pressable>
+
+            <Text style={styles.weekLabel}>{weekLabel}</Text>
+
+            <Pressable onPress={() => setWeekOffset((w) => w + 1)} hitSlop={10}>
+              <Text style={styles.weekArrow}>{'>'}</Text>
+            </Pressable>
+          </View>
+
+          {/* JOURS + NUMÉRO + VERT SI DÉFI */}
           <View style={styles.weekContainer}>
-            {days.map((day, index) => (
-                <View key={index} style={styles.dayColumn}>
-                  <Text style={styles.dayText}>{day}</Text>
-                  <View style={styles.dayCircle} />
-                </View>
-            ))}
+            {days.map((day, index) => {
+              const date = weekDates[index];
+              const key = toKey(date);
+              const isGreen = greenDays.has(key);
+
+              return (
+                  <View key={index} style={styles.dayColumn}>
+                    <Text style={styles.dayText}>{day}</Text>
+
+                    <View style={[styles.dayCircle, isGreen && styles.dayCircleGreen]}>
+                      <Text style={[styles.dayNumber, isGreen && styles.dayNumberGreen]}>
+                        {date.getDate()}
+                      </Text>
+                    </View>
+                  </View>
+              );
+            })}
           </View>
         </View>
 
@@ -343,6 +470,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textDecorationLine: 'underline',
   },
+
+  weekHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 12,
+  },
+  weekArrow: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  weekLabel: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+
   weekContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -360,6 +506,19 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: '#E0E0E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCircleGreen: {
+    backgroundColor: '#65B369',
+  },
+  dayNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#000',
+  },
+  dayNumberGreen: {
+    color: '#fff',
   },
 
   statCard: {
