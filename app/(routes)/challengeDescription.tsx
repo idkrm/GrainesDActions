@@ -14,6 +14,7 @@ import {
 
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import {
+    arrayRemove,
     arrayUnion,
     doc,
     getDoc,
@@ -46,6 +47,7 @@ export default function ChallengeDescription() {
     const [alreadyAccepted, setAlreadyAccepted] = useState(false);
 
     const [accepting, setAccepting] = useState(false);
+    const [cancel, setCancel] = useState(false);
 
     // 1) Charger le défi
     useEffect(() => {
@@ -185,6 +187,34 @@ export default function ChallengeDescription() {
         );
     }
 
+    // 5) Annuler un défi
+    const handleCancel = async () => {
+        if(!defiId) return;
+
+        const user = auth.currentUser;
+        if (!user) {
+            Alert.alert("Connexion requise", "Tu dois être connecté(e) pour annuler un défi.");
+            // @ts-ignore
+            router.replace("/(routes)/login");
+            return;
+        }
+
+        setCancel(true);
+
+        const userRef = doc(db, "Users", user.uid);
+        const currentId = String(defiId);
+        
+        await runTransaction(db, async (transaction) => {
+            const userSnap = await transaction.get(userRef);
+            if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
+
+            transaction.update(userRef, {
+                defi_en_cours: arrayRemove(currentId),
+            });
+        });
+        
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -260,17 +290,22 @@ export default function ChallengeDescription() {
                             )}
                         </Pressable>
                     ) : (
-                        <Pressable
-                            style={[styles.acceptButton, accepting && { opacity: 0.6 }]}
-                            onPress={handleValidate} // Appelle la nouvelle redirection
-                            disabled={accepting}
-                        >
-                            {accepting ? (
-                                <ActivityIndicator />
-                            ) : (
-                                <Text style={styles.acceptButtonText}>Valider le défi</Text>
-                            )}
-                        </Pressable>
+                        <View>
+                            <Pressable
+                                style={[styles.acceptButton, accepting && { opacity: 0.6 }]}
+                                onPress={handleValidate} // Appelle la nouvelle redirection
+                                disabled={accepting}
+                            >
+                                {accepting ? (
+                                    <ActivityIndicator />
+                                ) : (
+                                    <Text style={styles.acceptButtonText}>Valider le défi</Text>
+                                )}
+                            </Pressable>
+                            <Pressable>
+                                
+                            </Pressable>
+                        </View>
                     )}
                 </View>
             )}
