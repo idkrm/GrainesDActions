@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Modal,
   Pressable,
   StyleSheet,
@@ -20,8 +21,8 @@ import {
   onSnapshot,
   query,
   runTransaction,
-  where,
   Timestamp,
+  where,
 } from "firebase/firestore";
 
 interface ValidationItem {
@@ -100,7 +101,7 @@ export default function ValidationDefisScreen() {
             defiNom,
             username,
             dateSoumission: formattedDate,
-            imageUri: data?.imageUri || undefined,
+            imageUri: data?.PreuveUri || undefined,
           });
         }
 
@@ -282,6 +283,18 @@ export default function ValidationDefisScreen() {
                 <Text style={{ fontWeight: "bold" }}>+{selectedItem?.points} pts</Text>
               </Text>
 
+              {/* --- IMAGE SÉLECTIONNÉE --- */}
+              <View style={styles.modalImageContainer}>
+                {selectedItem?.imageUri ? (
+                  <Image source={{ uri: selectedItem.imageUri }} style={styles.modalImage} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.modalImage, styles.placeholderImage]}>
+                    <Ionicons name="image-outline" size={40} color="#aaa" />
+                    <Text style={{color: '#aaa', marginTop: 10}}>Aucune image</Text>
+                  </View>
+                )}
+              </View>
+
               <View style={styles.actionButtonsRow}>
                 <Pressable style={[styles.actionButton, styles.buttonValidate]} onPress={handleValidate}>
                   <Text style={styles.buttonText}>Valider le défi</Text>
@@ -456,5 +469,21 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 15,
     fontWeight: "bold",
+  },
+  modalImageContainer: {
+    width: '100%',
+    aspectRatio: 1, 
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 25,
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

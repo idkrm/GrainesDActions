@@ -18,7 +18,6 @@ import {
     doc,
     getDoc,
     runTransaction,
-    serverTimestamp
 } from "firebase/firestore";
 
 interface Defi {
@@ -89,7 +88,6 @@ export default function ChallengeDescription() {
                     return;
                 }
 
-                // ⚠️ compat: accepte number OU string en base
                 const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
                 const currentId = String(defiId);
 
@@ -122,27 +120,23 @@ export default function ChallengeDescription() {
             setAccepting(true);
 
             const userRef = doc(db, "Users", user.uid);
-            const currentId = String(defiId); // ✅ on stocke en STRING
+            const currentId = String(defiId);
 
             await runTransaction(db, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
 
-                // ⚠️ compat: si tu as déjà des numbers en base
                 const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
                 const already = defiEnCoursRaw.some((v) => String(v) === currentId);
 
-                // Règle 1 : pas 2 fois le même défi
                 if (already) {
                     throw new Error("Tu as déjà accepté ce défi !");
                 }
 
-                // Règle 2 : max 3 défis en cours
                 if (defiEnCoursRaw.length >= MAX_DEFIS) {
                     throw new Error(`Tu as déjà ${MAX_DEFIS} défis en cours. Termine-en un avant d'en accepter un autre.`);
                 }
 
-                // ✅ Ajout en string
                 transaction.update(userRef, {
                     defi_en_cours: arrayUnion(currentId),
                 });
@@ -158,79 +152,21 @@ export default function ChallengeDescription() {
     };
 
     // 4) Valider un défi
-    const handleValidate = async () => {
-        try {
-            if (!defiId) return;
+    const handleValidate = () => {
+        if (!defiId) return;
 
-            const user = auth.currentUser;
-            if (!user) {
-                Alert.alert("Connexion requise", "Tu dois être connecté(e) pour valider un défi.");
-                // @ts-ignore
-                router.replace("/(routes)/login");
-                return;
-            }
-
-            setAccepting(true);
-
-            const userRef = doc(db, "Users", user.uid);
-            const counterRef = doc(db, "Counters", "HistoriqueDefis");
-
-            await runTransaction(db, async (transaction) => {
-                // 1) Lire user
-                const userSnap = await transaction.get(userRef);
-                if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
-
-                // ⚠️ compat: accepte number OU string en base
-                const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
-                const currentId = String(defiId);
-
-                const hasDefi = defiEnCoursRaw.some((v) => String(v) === currentId);
-                if (!hasDefi) {
-                    throw new Error("Ce défi n'est pas dans tes défis en cours.");
-                }
-
-                // 2) Lire / init compteur
-                const counterSnap = await transaction.get(counterRef);
-
-                let nextId: number;
-
-                if (!counterSnap.exists()) {
-                    // Si le compteur n'existe pas encore : on le crée à 1
-                    nextId = 1;
-                    transaction.set(counterRef, { nextId: 2 });
-                } else {
-                    const currentNextId = Number(counterSnap.data()?.nextId ?? 1);
-                    nextId = currentNextId;
-                    transaction.update(counterRef, { nextId: currentNextId + 1 });
-                }
-
-                // 3) Créer l'historique avec ID incrémental
-                const historiqueRef = doc(db, "HistoriqueDefis", String(nextId));
-                transaction.set(historiqueRef, {
-                    DefisID: currentId,              // string
-                    UserID: user.uid,                // string
-                    DateValidation: serverTimestamp(),// timestamp
-                    State: "En cours",               // string
-                });
-
-                // 4) Retirer le défi de defi_en_cours (robuste: filtre)
-                const newList = defiEnCoursRaw.filter((v) => String(v) !== currentId);
-
-                transaction.update(userRef, {
-                    defi_en_cours: newList,
-                });
-            });
-
-            // UI : on met à jour l'état local
-            setAlreadyAccepted(false);
-
-            Alert.alert("Validation envoyée ✅", "Ton défi est passé dans l'historique (État : En cours).");
-            router.back();
-        } catch (e: any) {
-            Alert.alert("Erreur", e?.message ?? "Impossible de valider le défi.");
-        } finally {
-            setAccepting(false);
+        const user = auth.currentUser;
+        if (!user) {
+            Alert.alert("Connexion requise", "Tu dois être connecté(e) pour valider un défi.");
+            // @ts-ignore
+            router.replace("/(routes)/login");
+            return;
         }
+
+        router.push({
+            pathname: "/(routes)/validationDefi",
+            params: { id: defiId }
+        });
     };
 
     if (loadingDefi) {
@@ -326,7 +262,7 @@ export default function ChallengeDescription() {
                     ) : (
                         <Pressable
                             style={[styles.acceptButton, accepting && { opacity: 0.6 }]}
-                            onPress={handleValidate}
+                            onPress={handleValidate} // Appelle la nouvelle redirection
                             disabled={accepting}
                         >
                             {accepting ? (
