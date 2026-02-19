@@ -69,6 +69,7 @@ export default function TransactionsScreen() {
           let descriptionRecompense = "";
           let points = "";
           let isDon = false; 
+          let isArbre = false;
 
           if (item.id_recompense) {
             const recRef = doc(database, "Recompenses", String(item.id_recompense));
@@ -80,13 +81,17 @@ export default function TransactionsScreen() {
               points = recData.nb_points;
 
               const lowerName = nomRecompense.toLowerCase();
-              if (lowerName.includes('don') || lowerName.includes('arbre') || lowerName.includes('plantation')) {
+              if (lowerName.includes('don')) {
                 isDon = true;
+              }
+
+              if (lowerName.includes('arbre')) {
+                isArbre = true;
               }
             }
           }
 
-          // nom asso/magasin
+          // nom asso/magasin/arbre
           let nom = "Inconnu";
 
           if (isDon) {
@@ -94,29 +99,29 @@ export default function TransactionsScreen() {
             if (item.id_asso) {
               const assoRef = doc(database, "Assos", String(item.id_asso));
               const assoSnap = await getDoc(assoRef);
-              if (assoSnap.exists()) {
-                nom = assoSnap.data().nom;
-              } else {
-                nom = "Association inconnue";
-              }
+              nom = assoSnap.exists() ? assoSnap.data().nom : "Association inconnue";
+            } else {
+               nom = item.nom_recompense || "Don écologique";
             }
-          } else {
-            // cas bon d'achat : nom du magasin
+          } 
+          else if (isArbre) {
+            nom = "Plantation d'un arbre";
+          } 
+          else {
+            // Cas bon d'achat : nom du magasin
             if (item.id_magasin) {
               const magRef = doc(database, "Magasins", String(item.id_magasin));
               const magSnap = await getDoc(magRef);
-              if (magSnap.exists()) {
-                nom = magSnap.data().nom;
-              } else {
-                nom = "Magasin inconnu";
-              }
+              nom = magSnap.exists() ? magSnap.data().nom : "Magasin inconnu";
+            } else {
+              nom = item.nom_recompense || "Récompense";
             }
           }
 
           // si bon d'achat non utilise
           const aEteUtilise = item.date_utilisation && item.date_utilisation !== "";
           
-          if (!isDon && !aEteUtilise) {
+          if (!isDon && !aEteUtilise && !isArbre) {
             return null;
           }
 
