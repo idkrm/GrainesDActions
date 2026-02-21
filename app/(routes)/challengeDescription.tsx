@@ -203,7 +203,7 @@ export default function ChallengeDescription() {
 
         const userRef = doc(db, "Users", user.uid);
         const currentId = String(defiId);
-        
+        try {
         await runTransaction(db, async (transaction) => {
             const userSnap = await transaction.get(userRef);
             if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
@@ -212,6 +212,11 @@ export default function ChallengeDescription() {
                 defi_en_cours: arrayRemove(currentId),
             });
         });
+        Alert.alert("Information", "Le défi en cours est annulé !"); // (Rafraîchir pour voir les changements) 
+
+        } catch(error){
+            throw new Error("Erreur lors de l'annulation du défi...")
+        }
         
     }
 
@@ -290,7 +295,7 @@ export default function ChallengeDescription() {
                             )}
                         </Pressable>
                     ) : (
-                        <View>
+                        <View style={styles.containerButtons}>
                             <Pressable
                                 style={[styles.acceptButton, accepting && { opacity: 0.6 }]}
                                 onPress={handleValidate} // Appelle la nouvelle redirection
@@ -302,8 +307,12 @@ export default function ChallengeDescription() {
                                     <Text style={styles.acceptButtonText}>Valider le défi</Text>
                                 )}
                             </Pressable>
-                            <Pressable>
-                                
+                            <Pressable 
+                                style={styles.cancelButton}
+                                onPress={handleCancel} 
+                                disabled={accepting}
+                            >
+                                <Text style={styles.acceptButtonText}>Annuler le défi</Text>
                             </Pressable>
                         </View>
                     )}
@@ -425,6 +434,28 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         elevation: 3,
+        flex: 1,
     },
-    acceptButtonText: { fontSize: 16, fontWeight: "600", color: "#000" },
+    acceptButtonText: { 
+        fontSize: 16, 
+        fontWeight: "600", 
+        color: "#000" 
+    },
+    cancelButton: {
+        backgroundColor: "#f05f52",
+        paddingVertical: 16,
+        borderRadius: 30,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        elevation: 3,
+        flex: 1,
+    },
+    containerButtons: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: 0.7,
+        justifyContent: 'center',
+    },
 });
