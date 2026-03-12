@@ -214,7 +214,7 @@ export default function RegisterScreen() {
           </View>
           {!!errors.acceptData && <Text style={styles.errorText}>{errors.acceptData}</Text>}
 
-          {/* Checkbox 2 facultatif (notifications) */}
+          {/* Checkbox 2 facultatif (notifications)
           <View style={styles.checkboxContainer}>
             <Checkbox
                 style={styles.checkbox}
@@ -225,7 +225,7 @@ export default function RegisterScreen() {
             <Text style={styles.checkboxLabel}>
               Je souhaite activer les notifications de défis quotidiens
             </Text>
-          </View>
+          </View> */}
 
           {!!errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 

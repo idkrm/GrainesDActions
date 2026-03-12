@@ -1,6 +1,8 @@
+import { auth } from "@/firebaseBD/firebaseConfig";
 import { useRouter } from 'expo-router';
+import { sendPasswordResetEmail } from "firebase/auth";
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLORS } from '../../../constants/colors';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
@@ -8,13 +10,36 @@ import AuthInput from '../../components/auth/AuthInput';
 
 export default function ForgotPassword() {
     const router = useRouter();
-    const [email, getEmail] = useState('');
+    const [email, setEmail] = useState('');
 
-    const handleForgotPassword = () => {
-        // Affiche le msg qu'un mail a été envoyé à l'adresse mail si c'est associé à un compte
+    const handleForgotPassword = async () => {
+        if (!email.trim()) {
+            Alert.alert("Oups", "Veuillez entrer une adresse mail.");
+            return;
+        }
 
-        // Si le mail est bien dans la BDD : envoyer un mail
-        // Sinon : ne rien faire
+        try {
+            await sendPasswordResetEmail(auth, email.trim());
+
+            Alert.alert(
+                "E-mail envoyé !",
+                "Si cette adresse est associée à un compte, tu recevras un lien pour réinitialiser ton mot de passe d'ici quelques minutes.",
+                [
+                    { 
+                        text: "Retour à la connexion", 
+                        onPress: () => router.back()
+                    }
+                ]
+            );
+        } catch (error: any) {
+            console.log("Erreur mot de passe oublié =>", error);
+            
+            if (error.code === 'auth/invalid-email') {
+                Alert.alert("Erreur", "L'adresse mail n'est pas valide.");
+            } else {
+                Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer plus tard.");
+            }
+        }
     };
 
     return (
@@ -24,8 +49,9 @@ export default function ForgotPassword() {
             <AuthInput
                 label="Adresse mail"
                 value={email}
-                onChangeText={getEmail}
+                onChangeText={setEmail}
                 autoCapitalize="none"
+                keyboardType="email-address"
                 placeholder='adresse@exemple.fr'
             />
 
@@ -46,7 +72,13 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
         color: COLORS.textDark,
+        marginBottom: 15,
+    },
+    instructions: {
+        fontSize: 14,
+        color: '#666',
         marginBottom: 30,
+        lineHeight: 20,
     },
     forgotPasswordContainer: {
         alignSelf: 'flex-end',

@@ -63,7 +63,7 @@ export default function EditProfileScreen() {
             }));
 
             // Préférences
-            if (data.notifications_enabled !== undefined) setNotifEnabled(data.notifications_enabled);
+            // if (data.notifications_enabled !== undefined) setNotifEnabled(data.notifications_enabled);
             if (data.is_public !== undefined) setPublicEnabled(data.is_public);
           } else {
             console.error("ERREUR : Le document utilisateur n'existe pas");
@@ -133,15 +133,15 @@ export default function EditProfileScreen() {
     if (type === 'notif') setNotifEnabled(value);
     else setPublicEnabled(value);
 
-    try {
-      const userRef = doc(database, "Users", currentUser.uid);
-      await updateDoc(userRef, {
-        [type === 'notif' ? 'notifications_enabled' : 'is_public']: value
-      });
-    } catch (error) {
-      if (type === 'notif') setNotifEnabled(!value);
-      else setPublicEnabled(!value);
-    }
+    // try {
+    //   const userRef = doc(database, "Users", currentUser.uid);
+    //   await updateDoc(userRef, {
+    //     [type === 'notif' ? 'notifications_enabled' : 'is_public']: value
+    //   });
+    // } catch (error) {
+    //   if (type === 'notif') setNotifEnabled(!value);
+    //   else setPublicEnabled(!value);
+    // }
   };
 
   if (loading) {
@@ -205,7 +205,7 @@ export default function EditProfileScreen() {
 
         </View>
 
-        <View style={styles.sectionContainer}>
+        {/* <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Notifications</Text>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Autoriser les notifications de défis</Text>
@@ -216,7 +216,7 @@ export default function EditProfileScreen() {
               value={notifEnabled}
             />
           </View>
-        </View>
+        </View> */}
 
         {/* SECTION CONFIDENTIALITÉ */}
         <View style={styles.sectionContainer}>
