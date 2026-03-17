@@ -1,12 +1,12 @@
+import { COLORS } from '@/constants/colors';
+import { auth } from "@/firebaseBD/firebaseConfig";
 import { Link, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '@/constants/colors';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
-import { auth } from "@/firebaseBD/firebaseConfig";
 
 export default function LoginScreen() {
   const router = useRouter();

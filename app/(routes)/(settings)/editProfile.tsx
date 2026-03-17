@@ -11,7 +11,6 @@ import {
   Text,
   View
 } from 'react-native';
-import { COLORS } from '../../../constants/colors';
 import EditModal from '../../components/profile/EditProfileModal';
 
 // IMPORTS FIREBASE
@@ -25,7 +24,6 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(true);
   
   // États des switchs
-  const [notifEnabled, setNotifEnabled] = useState(false);
   const [publicEnabled, setPublicEnabled] = useState(true);
 
   // Données utilisateur
@@ -35,7 +33,7 @@ export default function EditProfileScreen() {
     password: '••••••••',
   });
 
-  // pour le modal qui permet de modif les infos du user
+  // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | null>(null);
 
@@ -43,30 +41,23 @@ export default function EditProfileScreen() {
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // Email via Auth
         setUserData(prev => ({
           ...prev,
           email: currentUser.email || '',
         }));
 
-        // Pseudo via Firestore
         try {
           const docRef = doc(database, "Users", currentUser.uid);
           const docSnap = await getDoc(docRef);
 
           if (docSnap.exists()) {
             const data = docSnap.data();
-
             setUserData(prev => ({
               ...prev,
-              pseudo: data.pseudo || 'Erreur de chargement',
+              pseudo: data.pseudo || 'Utilisateur',
             }));
 
-            // Préférences
-            // if (data.notifications_enabled !== undefined) setNotifEnabled(data.notifications_enabled);
             if (data.is_public !== undefined) setPublicEnabled(data.is_public);
-          } else {
-            console.error("ERREUR : Le document utilisateur n'existe pas");
           }
         } catch (error) {
           console.error("Erreur lecture Firestore:", error);
@@ -83,159 +74,165 @@ export default function EditProfileScreen() {
     setModalVisible(true);
   };
 
-  // --- SAUVEGARDE DES DONNEES ---
- const handleSaveField = async (newValue: string) => {
+  // --- SAUVEGARDE DES DONNEES (MODAL) ---
+  const handleSaveField = async (newValue: string) => {
     const currentUser = auth.currentUser;
     if (!currentUser || !activeField) return;
 
     try {
       const userRef = doc(database, "Users", currentUser.uid);
 
-      //PSEUDO
       if (activeField === 'pseudo') {
         await updateDoc(userRef, { pseudo: newValue });
         setUserData(prev => ({ ...prev, pseudo: newValue }));
       } 
-      //EMAIL
       else if (activeField === 'email') {
          await updateEmail(currentUser, newValue); 
-
-         // MAJ Firestore
          await updateDoc(userRef, { email: newValue });
-
-         // MAJ sur l'app
          setUserData(prev => ({ ...prev, email: newValue }));
          Alert.alert("Succès", "Email modifié avec succès !");
       }
-
-      //MOT DE PASSE
       else if (activeField === 'password') {
         await updatePassword(currentUser, newValue); 
-        // MAJ Firestore
-        //await updateDoc(userRef, { mdp: newValue });
-
-        // MAJ sur l'app
-        //setUserData(prev => ({ ...prev, mdp: newValue }));
-        
-        // Si ça passe, on affiche le succès
         Alert.alert("Succès", "Votre mot de passe a été modifié.");
       }
 
     } catch (error: any) {
       console.error("ERREUR UPDATE :", error.code, error.message);
+      if (error.code === "auth/requires-recent-login") {
+        Alert.alert("Reconnexion requise", "Veuillez vous déconnecter et vous reconnecter pour modifier cette information sensible.");
+      } else {
+        Alert.alert("Erreur", "Une erreur est survenue lors de la modification.");
+      }
     }
   };
 
-  const toggleSwitch = async (type: 'notif' | 'public', value: boolean) => {
+  // --- SAUVEGARDE DU SWITCH ---
+  const toggleSwitch = async (value: boolean) => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     
-    if (type === 'notif') setNotifEnabled(value);
-    else setPublicEnabled(value);
+    // 1. Mise à jour immédiate de l'interface (optimiste)
+    setPublicEnabled(value);
 
-    // try {
-    //   const userRef = doc(database, "Users", currentUser.uid);
-    //   await updateDoc(userRef, {
-    //     [type === 'notif' ? 'notifications_enabled' : 'is_public']: value
-    //   });
-    // } catch (error) {
-    //   if (type === 'notif') setNotifEnabled(!value);
-    //   else setPublicEnabled(!value);
-    // }
+    // 2. Envoi à Firebase
+    try {
+      const userRef = doc(database, "Users", currentUser.uid);
+      await updateDoc(userRef, {
+        is_public: value
+      });
+    } catch (error) {
+      // 3. Rollback en cas d'erreur
+      console.error(error);
+      setPublicEnabled(!value);
+      Alert.alert("Erreur", "Impossible de sauvegarder vos préférences.");
+    }
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primaryGreen} />
+      <View style={[styles.mainContainer, styles.center]}>
+        <ActivityIndicator size="large" color="#65B369" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.mainContainer}>
 
-      {/* HEADER PERSONNALISÉ */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="black" />
+      {/* HEADER AVEC BOUTON RETOUR */}
+      <View style={styles.headerTop}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+          <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
         </Pressable>
-        <Text style={styles.headerTitle}>Modifier mon profil</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-
-        {/* SECTION PROFIL (CADRE VERT) */}
-        <Text style={styles.sectionLabel}>Profil</Text>
-        <View style={styles.greenCard}>
-
-          {/* Pseudo */}
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Pseudo : {userData.pseudo}</Text>
-            </View>
-            <Pressable onPress={() => openEditModal('pseudo')}>
-              <Ionicons name="create-outline" size={24} color="#333" />
-            </Pressable>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Email */}
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Adresse mail : {userData.email}</Text>
-            </View>
-            <Pressable onPress={() => openEditModal('email')}>
-              <Ionicons name="create-outline" size={24} color="#333" />
-            </Pressable>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Mdp */}
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Mot de passe : {userData.password}</Text>
-            </View>
-            <Pressable onPress={() => openEditModal('password')}>
-              <Ionicons name="create-outline" size={24} color="#333" />
-            </Pressable>
-          </View>
-
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* TITRES */}
+        <View style={styles.headerTitles}>
+          <Text style={styles.title}>Mon profil</Text>
+          <Text style={styles.subtitle}>Gère tes informations personnelles</Text>
         </View>
 
-        {/* <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Autoriser les notifications de défis</Text>
-            <Switch
-              trackColor={{ false: "#E0E0E0", true: COLORS.primaryGreen }}
-              thumbColor={"#fff"}
-              onValueChange={(val) => toggleSwitch('notif', val)}
-              value={notifEnabled}
-            />
+        {/* SECTION PROFIL (CARTE BLANCHE) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Général</Text>
+          <View style={styles.card}>
+
+            {/* Ligne Pseudo */}
+            <Pressable style={styles.fieldRow} onPress={() => openEditModal('pseudo')}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="person-outline" size={20} color="#65B369" />
+              </View>
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Pseudo</Text>
+                <Text style={styles.fieldValue} numberOfLines={1}>{userData.pseudo}</Text>
+              </View>
+              <Ionicons name="pencil" size={20} color="#ccc" />
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            {/* Ligne Email */}
+            <Pressable style={styles.fieldRow} onPress={() => openEditModal('email')}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#E1F5FE' }]}>
+                <Ionicons name="mail-outline" size={20} color="#4FC3F7" />
+              </View>
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Adresse mail</Text>
+                <Text style={styles.fieldValue} numberOfLines={1}>{userData.email}</Text>
+              </View>
+              <Ionicons name="pencil" size={20} color="#ccc" />
+            </Pressable>
+
+            <View style={styles.divider} />
+
+            {/* Ligne Mot de passe */}
+            <Pressable style={[styles.fieldRow, { borderBottomWidth: 0 }]} onPress={() => openEditModal('password')}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="lock-closed-outline" size={20} color="#F57C00" />
+              </View>
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Mot de passe</Text>
+                <Text style={styles.fieldValue}>{userData.password}</Text>
+              </View>
+              <Ionicons name="pencil" size={20} color="#ccc" />
+            </Pressable>
+
           </View>
-        </View> */}
+        </View>
 
         {/* SECTION CONFIDENTIALITÉ */}
-        <View style={styles.sectionContainer}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Confidentialité</Text>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>
-              Je souhaite apparaître dans le classement des utilisateurs
-            </Text>
-            <Switch
-              trackColor={{ false: "#E0E0E0", true: COLORS.primaryGreen }}
-              thumbColor={"#fff"}
-              onValueChange={(val) => toggleSwitch('public', val)}
-              value={publicEnabled}
-            />
+          <View style={styles.card}>
+            
+            <View style={[styles.fieldRow, { borderBottomWidth: 0 }]}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#F3E5F5' }]}>
+                <Ionicons name="earth-outline" size={20} color="#BA68C8" />
+              </View>
+              
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Profil public</Text>
+                <Text style={styles.switchDescription}>Apparaître dans le classement</Text>
+              </View>
+
+              <Switch
+                trackColor={{ false: "#E0E0E0", true: "#65B369" }}
+                thumbColor={"#fff"}
+                ios_backgroundColor="#E0E0E0"
+                onValueChange={toggleSwitch}
+                value={publicEnabled}
+              />
+            </View>
+
           </View>
         </View>
 
       </ScrollView>
 
+      {/* MODAL EXISTANT */}
       <EditModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -248,76 +245,104 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: 60,
+    backgroundColor: '#FAFAFA', // Fond Soft UI
+    paddingTop: 50,
   },
-  header: {
-    flexDirection: 'row',
+  center: {
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 40,
   },
-  backButton: {
-    marginRight: 15,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  content: {
+  scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  sectionLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 8,
-  },
 
-  // CADRE VERT
-  greenCard: {
-    borderWidth: 1,
-    borderColor: COLORS.primaryGreen,
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 30,
+  // --- HEADER ---
+  headerTop: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    marginLeft: -5,
   },
-  label: {
+  headerTitles: {
+    marginBottom: 35,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  subtitle: {
     fontSize: 15,
     color: '#666',
+    marginTop: 4,
+  },
+
+  // --- SECTIONS & CARTES ---
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    paddingLeft: 5,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    // Soft UI Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+
+  // --- LIGNES DE CHAMP (ROWS) ---
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  iconWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  fieldTexts: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  fieldLabel: {
+    fontSize: 13,
+    color: '#888',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  fieldValue: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontWeight: '700',
+  },
+  switchDescription: {
+    fontSize: 13,
+    color: '#555',
+    fontWeight: '500',
   },
   divider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
-  },
-
-  // SWITCHES
-  sectionContainer: {
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  switchLabel: {
-    flex: 1,
-    fontSize: 15,
-    color: '#333',
-    marginRight: 10,
+    backgroundColor: '#F0F0F0',
+    marginLeft: 57, // Aligné avec le texte (largeur icone + marge)
   },
 });

@@ -5,6 +5,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -47,7 +48,6 @@ export default function ChallengeDescription() {
     const [alreadyAccepted, setAlreadyAccepted] = useState(false);
 
     const [accepting, setAccepting] = useState(false);
-    const [cancel, setCancel] = useState(false);
 
     // 1) Charger le défi
     useEffect(() => {
@@ -72,7 +72,7 @@ export default function ChallengeDescription() {
         loadDefi();
     }, [defiId]);
 
-    // 2) Vérifier côté user si déjà accepté (défi présent dans defi_en_cours)
+    // 2) Vérifier côté user si déjà accepté
     useEffect(() => {
         const checkAlreadyAccepted = async () => {
             try {
@@ -171,22 +171,6 @@ export default function ChallengeDescription() {
         });
     };
 
-    if (loadingDefi) {
-        return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#65B369" />
-            </View>
-        );
-    }
-
-    if (!defi) {
-        return (
-            <View style={styles.center}>
-                <Text>Défi introuvable.</Text>
-            </View>
-        );
-    }
-
     // 5) Annuler un défi
     const handleCancel = async () => {
         if(!defiId) return;
@@ -199,62 +183,97 @@ export default function ChallengeDescription() {
             return;
         }
 
-        setCancel(true);
-
+        setAccepting(true);
         const userRef = doc(db, "Users", user.uid);
         const currentId = String(defiId);
-        try {
-        await runTransaction(db, async (transaction) => {
-            const userSnap = await transaction.get(userRef);
-            if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
-
-            transaction.update(userRef, {
-                defi_en_cours: arrayRemove(currentId),
-            });
-        });
-        Alert.alert("Information", "Le défi en cours est annulé !"); // (Rafraîchir pour voir les changements) 
-
-        } catch(error){
-            throw new Error("Erreur lors de l'annulation du défi...")
-        }
         
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userSnap = await transaction.get(userRef);
+                if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
+
+                transaction.update(userRef, {
+                    defi_en_cours: arrayRemove(currentId),
+                });
+            });
+            Alert.alert("Annulé", "Tu as abandonné ce défi."); 
+            setAlreadyAccepted(false);
+        } catch(error){
+            Alert.alert("Erreur", "Impossible d'annuler le défi pour le moment.");
+        } finally {
+            setAccepting(false);
+        }
+    }
+
+    if (loadingDefi) {
+        return (
+            <View style={styles.center}>
+                <ActivityIndicator size="large" color="#65B369" />
+            </View>
+        );
+    }
+
+    if (!defi) {
+        return (
+            <View style={styles.center}>
+                <Ionicons name="alert-circle-outline" size={50} color="#ccc" style={{marginBottom: 10}}/>
+                <Text style={{color: '#888', fontSize: 16}}>Défi introuvable.</Text>
+            </View>
+        );
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={28} color="black" />
+        <View style={styles.mainContainer}>
+            
+            {/* HEADER TOP (Bouton retour) */}
+            <View style={styles.headerTop}>
+                <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+                <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
                 </Pressable>
-                <Text style={styles.headerTitle}>Défi</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* IMAGE */}
-                {defi.image && defi.image.trim() !== "" ? (
-                    <Image source={{ uri: defi.image }} style={styles.image} resizeMode="cover" />
-                ) : (
-                    <View style={[styles.image, styles.placeholderImage]}>
-                        <Text style={{ color: '#556', opacity: 0.5 }}>[image]</Text>
-                    </View>
-                )}
-
-                {/* TITRE */}
-                <Text style={styles.title}>{defi.nom ?? "Nom du défi"}</Text>
-
-                {/* BADGE REWARD */}
-                <View style={styles.rewardContainer}>
-                    <View style={styles.rewardBadge}>
-                        <MaterialCommunityIcons name="trophy-outline" size={20} color="#F57C00" />
-                        <Text style={styles.rewardText}>Gain : +{((defi.difficulte ?? 0) * 10)} points</Text>
-                    </View>
+                
+                {/* TITRES */}
+                <View style={styles.headerTitles}>
+                    <Text style={styles.title}>Détail du défi</Text>
                 </View>
 
-                {/* CHIPS */}
+                {/* IMAGE */}
+                <View style={styles.imageContainer}>
+                    {defi.image && defi.image.trim() !== "" ? (
+                        <Image source={{ uri: defi.image }} style={styles.image} resizeMode="cover" />
+                    ) : (
+                        <View style={styles.placeholderImage}>
+                            <Ionicons name="leaf-outline" size={40} color="#81C784" />
+                        </View>
+                    )}
+                </View>
+
+                {/* TITRE DU DÉFI */}
+                <Text style={styles.defiName}>{defi.nom ?? "Nom du défi"}</Text>
+
+                {/* BADGE DE RÉCOMPENSE */}
+                <View style={styles.rewardBadge}>
+                    <MaterialCommunityIcons name="star-circle" size={24} color="#F57C00" />
+                    <Text style={styles.rewardText}>+{((defi.difficulte ?? 0) * 10)} points à gagner</Text>
+                </View>
+
+                {/* CHIPS (CATÉGORIES & DIFFICULTÉ) */}
                 <View style={styles.badgeRow}>
                     <View style={styles.badge}>
-                        <Text style={styles.badgeText}>Difficulté : {defi.difficulte ?? 1}/5</Text>
+                        <Ionicons name="bar-chart-outline" size={14} color="#666" style={{marginRight: 4}}/>
+                        <Text style={styles.badgeText}>Difficulte : {defi.difficulte ?? 1}/5</Text>
                     </View>
+                    
+                    {/* Badge CO2 (ajouté car présent dans ton interface) */}
+                    {defi.co2 !== undefined && (
+                        <View style={[styles.badge, {backgroundColor: '#E1F5FE', borderColor: '#B3E5FC'}]}>
+                            <Ionicons name="cloudy-outline" size={14} color="#0288D1" style={{marginRight: 4}}/>
+                            <Text style={[styles.badgeText, {color: '#0288D1'}]}>{defi.co2} kg CO2</Text>
+                        </View>
+                    )}
+
                     {Array.isArray(defi.categorie) && defi.categorie.map((cat, index) => (
                         <View key={index} style={styles.badge}>
                             <Text style={styles.badgeText}>{cat}</Text>
@@ -262,57 +281,62 @@ export default function ChallengeDescription() {
                     ))}
                 </View>
 
-                {/* DESCRIPTION */}
-                <Text style={styles.sectionTitle}>Description</Text>
-                <Text style={styles.descriptionText}>{defi.description ?? "Pas de description."}</Text>
+                {/* SECTIONS DE TEXTE */}
+                <View style={styles.textCard}>
+                    <Text style={styles.sectionTitle}>Description</Text>
+                    <Text style={styles.descriptionText}>{defi.description ?? "Aucune description fournie pour ce défi."}</Text>
 
-                <Text style={styles.sectionTitle}>Pourquoi est-ce important ?</Text>
-                <Text style={styles.descriptionText}>{defi.pourquoi ?? "Pas de description."}</Text>
+                    <View style={styles.divider} />
 
-                {/* petit badge si déjà accepté */}
-                {alreadyAccepted && (
-                    <View style={styles.acceptedInfo}>
-                        <Text style={styles.acceptedText}>✅ Défi déjà accepté</Text>
-                    </View>
-                )}
+                    <Text style={styles.sectionTitle}>Pourquoi c'est important ?</Text>
+                    <Text style={styles.descriptionText}>{defi.pourquoi ?? "Chaque petite action compte pour la planète !"}</Text>
+                </View>
 
-                <View style={{ height: 120 }} />
+                {/* ESPACE POUR FOOTER */}
+                <View style={{ height: 130 }} />
             </ScrollView>
 
-            {/* FOOTER : soit Accepter, soit Valider */}
+            {/* FOOTER ACTIONS FLOATING */}
             {!checkingUser && (
-                <View style={styles.footer}>
+                <View style={styles.footerContainer}>
                     {!alreadyAccepted ? (
                         <Pressable
-                            style={[styles.acceptButton, accepting && { opacity: 0.6 }]}
+                            style={[styles.mainButton, accepting && { opacity: 0.6 }]}
                             onPress={handleAccept}
                             disabled={accepting}
                         >
                             {accepting ? (
-                                <ActivityIndicator />
+                                <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.acceptButtonText}>Accepter ce défi</Text>
+                                <>
+                                  <Text style={styles.mainButtonText}>Relever le défi</Text>
+                                  <Ionicons name="flag-outline" size={20} color="#fff" style={{marginLeft: 8}} />
+                                </>
                             )}
                         </Pressable>
                     ) : (
-                        <View style={styles.containerButtons}>
-                            <Pressable
-                                style={[styles.acceptButton, accepting && { opacity: 0.6 }]}
-                                onPress={handleValidate} // Appelle la nouvelle redirection
-                                disabled={accepting}
-                            >
-                                {accepting ? (
-                                    <ActivityIndicator />
-                                ) : (
-                                    <Text style={styles.acceptButtonText}>Valider le défi</Text>
-                                )}
-                            </Pressable>
+                        <View style={styles.activeButtonsRow}>
                             <Pressable 
-                                style={styles.cancelButton}
+                                style={[styles.cancelButton, accepting && { opacity: 0.6 }]}
                                 onPress={handleCancel} 
                                 disabled={accepting}
                             >
-                                <Text style={styles.acceptButtonText}>Annuler le défi</Text>
+                                <Ionicons name="close" size={24} color="#E57373" />
+                            </Pressable>
+
+                            <Pressable
+                                style={[styles.validateButton, accepting && { opacity: 0.6 }]}
+                                onPress={handleValidate} 
+                                disabled={accepting}
+                            >
+                                {accepting ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <>
+                                      <Text style={styles.mainButtonText}>J'ai réussi !</Text>
+                                      <Ionicons name="checkmark-circle-outline" size={22} color="#fff" style={{marginLeft: 8}} />
+                                    </>
+                                )}
                             </Pressable>
                         </View>
                     )}
@@ -323,139 +347,200 @@ export default function ChallengeDescription() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
+    mainContainer: {
+        flex: 1,
+        backgroundColor: '#FAFAFA', 
+        paddingTop: 50,
+    },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    scrollContent: {
         paddingHorizontal: 20,
-        marginTop: 70,
     },
-    backButton: { marginRight: 15 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold' },
 
-    scrollContent: { padding: 20 },
+    // --- HEADER ---
+    headerTop: {
+        paddingHorizontal: 20,
+        marginBottom: 10,
+    },
+    backButton: {
+        alignSelf: 'flex-start',
+        padding: 5,
+        marginLeft: -5,
+    },
+    headerTitles: {
+        marginBottom: 20,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#1A1A1A',
+    },
 
-    image: {
+    // --- IMAGE ---
+    imageContainer: {
         width: "100%",
         height: 220,
-        borderRadius: 12,
-        marginBottom: 15,
-        backgroundColor: "#eee",
+        borderRadius: 24,
+        marginBottom: 20,
+        backgroundColor: '#fff',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 4,
+        overflow: 'hidden',
+    },
+    image: {
+        width: "100%",
+        height: "100%",
     },
     placeholderImage: {
-        backgroundColor: "#C5E1C5",
+        flex: 1,
+        backgroundColor: "#E8F5E9",
         justifyContent: 'center',
         alignItems: 'center',
     },
 
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#000",
-        marginBottom: 10,
+    // --- INFOS DÉFI ---
+    defiName: {
+        fontSize: 26,
+        fontWeight: "800",
+        color: "#1A1A1A",
+        marginBottom: 15,
+        lineHeight: 32,
     },
-
-    rewardContainer: { flexDirection: 'row', marginBottom: 15 },
+    
+    // --- RECOMPENSE ---
     rewardBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        alignSelf: 'flex-start',
         backgroundColor: '#FFF3E0',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#FFE0B2',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 16,
+        marginBottom: 20,
     },
     rewardText: {
         color: '#E65100',
-        fontWeight: 'bold',
-        marginLeft: 6,
-        fontSize: 14,
+        fontWeight: '900',
+        fontSize: 15,
+        marginLeft: 8,
     },
 
+    // --- TAGS (CHIPS) ---
     badgeRow: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
-        marginBottom: 25,
+        gap: 10,
+        marginBottom: 30,
     },
     badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: "#E0E0E0",
-        paddingVertical: 6,
-        paddingHorizontal: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
         borderRadius: 20,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#fff",
     },
-    badgeText: { fontWeight: "500", color: "#666", fontSize: 13 },
+    badgeText: { 
+        fontWeight: "600", 
+        color: "#555", 
+        fontSize: 13 
+    },
 
+    // --- TEXTE DESCRIPTIF ---
+    textCard: {
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 2,
+    },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: "bold",
+        fontWeight: "800",
         marginBottom: 10,
-        color: "#000",
+        color: "#1A1A1A",
     },
     descriptionText: {
         fontSize: 15,
-        color: "#333",
+        color: "#555",
         lineHeight: 24,
-        textAlign: 'justify',
-        marginBottom: 30
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#F0F0F0',
+        marginVertical: 20,
     },
 
-    acceptedInfo: {
-        alignSelf: "flex-start",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        backgroundColor: "#E8F5E9",
-        borderWidth: 1,
-        borderColor: "#C8E6C9",
-    },
-    acceptedText: {
-        color: "#2E7D32",
-        fontWeight: "600",
-    },
-
-    footer: {
+    // --- FOOTER FLOATING ---
+    footerContainer: {
         position: 'absolute',
-        bottom: 30,
-        left: 20,
-        right: 20,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 20,
+        paddingBottom: Platform.OS === 'ios' ? 35 : 20,
+        paddingTop: 15,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F0',
     },
-    acceptButton: {
-        backgroundColor: "#C5E1C5",
-        paddingVertical: 16,
-        borderRadius: 30,
+    
+    // Bouton principal (Accepter)
+    mainButton: {
+        flexDirection: 'row',
+        backgroundColor: "#65B369",
+        paddingVertical: 18,
+        borderRadius: 20,
         alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        elevation: 3,
-        flex: 1,
+        justifyContent: 'center',
+        shadowColor: "#65B369",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    acceptButtonText: { 
-        fontSize: 16, 
-        fontWeight: "600", 
-        color: "#000" 
+    mainButtonText: { 
+        fontSize: 17, 
+        fontWeight: "800", 
+        color: "#fff" 
+    },
+
+    // Boutons quand le défi est en cours
+    activeButtonsRow: {
+        flexDirection: 'row',
+        gap: 15,
+        justifyContent: 'space-between',
     },
     cancelButton: {
-        backgroundColor: "#f05f52",
-        paddingVertical: 16,
-        borderRadius: 30,
-        alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        elevation: 3,
-        flex: 1,
-    },
-    containerButtons: {
-        display: 'flex',
-        flexDirection: 'row',
-        gap: 0.7,
+        backgroundColor: "#FFEBEE", 
+        width: 60,
+        height: 60,
+        borderRadius: 20,
         justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#FFCDD2',
+    },
+    validateButton: {
+        flex: 1,
+        flexDirection: 'row',
+        backgroundColor: "#65B369",
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: "#65B369",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
 });

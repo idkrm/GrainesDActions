@@ -9,15 +9,14 @@ import {
   Text,
   View
 } from 'react-native';
-import { COLORS } from '../../constants/colors';
 
 import { auth, db } from '@/firebaseBD/firebaseConfig';
 import {
   collection,
   getDocs,
   query,
-  where,
   Timestamp,
+  where,
 } from 'firebase/firestore';
 
 // Helpers date
@@ -105,8 +104,6 @@ export default function HistoryScreen() {
         const totalSnap = await getDocs(qTotal);
         setTotalValide(totalSnap.size);
 
-        // Ce mois affiché (on filtre côté client pour éviter index si tu n’en as pas)
-        // Si tu veux optimiser: je te donne plus bas la version with where DateValidation >= ...
         let monthCount = 0;
         totalSnap.forEach((docSnap) => {
           const data = docSnap.data() as any;
@@ -145,9 +142,6 @@ export default function HistoryScreen() {
 
         const histoRef = collection(db, 'HistoriqueDefis');
 
-        // On récupère tous les défis validés de l'utilisateur,
-        // puis on garde ceux du mois affiché et on marque les jours.
-        // (Version simple sans index composite)
         const qValide = query(
             histoRef,
             where('UserID', '==', user.uid),
@@ -164,7 +158,7 @@ export default function HistoryScreen() {
 
           const dt = dateVal.toDate();
           if (dt >= startOfDisplayedMonth && dt <= endOfDisplayedMonth) {
-            set.add(toKey(dt)); // ex: "2026-02-10"
+            set.add(toKey(dt)); 
           }
         });
 
@@ -201,190 +195,240 @@ export default function HistoryScreen() {
   };
 
   return (
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* HEADER PERSONNALISÉ */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="black" />
+      <View style={styles.mainContainer}>
+        
+        {/* HEADER TOP (Bouton retour) */}
+        <View style={styles.headerTop}>
+          <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+            <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
           </Pressable>
-          <Text style={styles.headerTitle}>Historique</Text>
         </View>
 
-        {/* SECTION 1 : LES CARTES STATS */}
-        <View style={styles.statsContainer}>
-          {/* Carte Jaune (Ce mois-ci) */}
-          <View style={[styles.card, { borderColor: COLORS.primaryYellow }]}>
-            <Text style={styles.cardTitle}>Ce mois-ci</Text>
-
-            {loading ? (
-                <ActivityIndicator />
-            ) : (
-                <>
-                  <Text style={styles.cardValue}>{moisValide}</Text>
-                  <Text style={styles.cardLabel}>défis validés</Text>
-                </>
-            )}
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          
+          {/* TITRES */}
+          <View style={styles.headerTitles}>
+            <Text style={styles.title}>Mon historique</Text>
           </View>
 
-          {/* Carte Rouge (Total) */}
-          <View style={[styles.card, { borderColor: COLORS.softRed }]}>
-            <Text style={styles.cardTitle}>Total</Text>
-
-            {loading ? (
-                <ActivityIndicator />
-            ) : (
-                <>
-                  <Text style={styles.cardValue}>{totalValide}</Text>
-                  <Text style={styles.cardLabel}>défis validés</Text>
-                </>
-            )}
-          </View>
-        </View>
-
-        {/* SECTION 2 : CALENDRIER */}
-        <View style={styles.calendarSection}>
-          {/* Sélecteur de mois */}
-          <View style={styles.monthSelector}>
-            <Pressable onPress={goPrevMonth} hitSlop={10}>
-              <Text style={styles.arrowText}>{'<'}</Text>
-            </Pressable>
-
-            <Text style={styles.monthText}>
-              {monthNamesFR[currentMonth]} {currentYear}
-            </Text>
-
-            <Pressable onPress={goNextMonth} hitSlop={10}>
-              <Text style={styles.arrowText}>{'>'}</Text>
-            </Pressable>
-          </View>
-
-          {/* Jours de la semaine */}
-          <View style={styles.daysHeader}>
-            {daysOfWeek.map((day, index) => (
-                <Text key={index} style={styles.dayHeaderText}>{day}</Text>
-            ))}
-          </View>
-
-          {/* Grille des jours */}
-          {loadingCalendar ? (
-              <View style={{ marginTop: 20 }}>
-                <ActivityIndicator />
+          {/* SECTION 1 : LES CARTES STATS */}
+          <View style={styles.statsContainer}>
+            {/* Carte Ce mois-ci */}
+            <View style={styles.statCard}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#FFF8E1' }]}>
+                <Ionicons name="calendar-outline" size={24} color="#FBC02D" />
               </View>
-          ) : (
-              <View style={styles.daysGrid}>
-                {calendarCells.map((cell, index) => {
-                  const isEmpty = cell.day === null;
-                  const isGreen = !!cell.dateKey && greenDays.has(cell.dateKey);
+              <Text style={styles.cardTitle}>Ce mois-ci</Text>
+              {loading ? (
+                  <ActivityIndicator color="#FBC02D" />
+              ) : (
+                  <Text style={styles.cardValue}>{moisValide} <Text style={styles.cardLabel}>défis</Text></Text>
+              )}
+            </View>
 
-                  return (
-                      <View key={index} style={styles.dayCell}>
-                        <View
-                            style={[
-                              styles.dayCircle,
-                              isEmpty && styles.dayCircleEmpty,
-                              isGreen && styles.dayCircleGreen,
-                            ]}
-                        >
-                          {!isEmpty && (
-                              <Text style={styles.dayNumber}>{cell.day}</Text>
-                          )}
+            {/* Carte Total */}
+            <View style={styles.statCard}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#FFEBEE' }]}>
+                <Ionicons name="flame-outline" size={24} color="#E53935" />
+              </View>
+              <Text style={styles.cardTitle}>Total</Text>
+              {loading ? (
+                  <ActivityIndicator color="#E53935" />
+              ) : (
+                  <Text style={styles.cardValue}>{totalValide} <Text style={styles.cardLabel}>défis</Text></Text>
+              )}
+            </View>
+          </View>
+
+          {/* SECTION 2 : CALENDRIER */}
+          <View style={styles.calendarCard}>
+            
+            {/* Sélecteur de mois */}
+            <View style={styles.monthSelector}>
+              <Pressable onPress={goPrevMonth} hitSlop={15} style={styles.arrowButton}>
+                <Ionicons name="chevron-back" size={20} color="#555" />
+              </Pressable>
+
+              <Text style={styles.monthText}>
+                {monthNamesFR[currentMonth]} {currentYear}
+              </Text>
+
+              <Pressable onPress={goNextMonth} hitSlop={15} style={styles.arrowButton}>
+                <Ionicons name="chevron-forward" size={20} color="#555" />
+              </Pressable>
+            </View>
+
+            {/* Jours de la semaine */}
+            <View style={styles.daysHeader}>
+              {daysOfWeek.map((day, index) => (
+                  <Text key={index} style={styles.dayHeaderText}>{day}</Text>
+              ))}
+            </View>
+
+            {/* Grille des jours */}
+            {loadingCalendar ? (
+                <View style={styles.loadingCalendarBox}>
+                  <ActivityIndicator size="large" color="#65B369" />
+                </View>
+            ) : (
+                <View style={styles.daysGrid}>
+                  {calendarCells.map((cell, index) => {
+                    const isEmpty = cell.day === null;
+                    const isGreen = !!cell.dateKey && greenDays.has(cell.dateKey);
+
+                    return (
+                        <View key={index} style={styles.dayCell}>
+                          <View
+                              style={[
+                                styles.dayCircle,
+                                isEmpty && styles.dayCircleEmpty,
+                                isGreen && styles.dayCircleGreen,
+                              ]}
+                          >
+                            {!isEmpty && (
+                                <Text style={[styles.dayNumber, isGreen && styles.dayNumberGreen]}>
+                                  {cell.day}
+                                </Text>
+                            )}
+                          </View>
                         </View>
-                      </View>
-                  );
-                })}
-              </View>
-          )}
-        </View>
-      </ScrollView>
+                    );
+                  })}
+                </View>
+            )}
+          </View>
+          
+        </ScrollView>
+      </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: '#FAFAFA',
+    paddingTop: 50,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 50,
-    marginBottom: 40,
-  },
-  backButton: {
-    marginRight: 15,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
 
-  // --- STYLE CARTES ---
+  // --- HEADER ---
+  headerTop: {
+    marginLeft: 15,
+    marginBottom: 10,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    marginLeft: -5,
+  },
+  headerTitles: {
+    marginBottom: 30,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 4,
+  },
+
+  // --- CARTES STATS ---
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 40,
-    marginTop: 10,
+    marginBottom: 35,
+    gap: 15,
   },
-  card: {
-    width: '47%',
-    borderWidth: 2,
-    borderRadius: 15,
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    alignItems: 'center',
-    height: 140,
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  iconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
   },
   cardTitle: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
-    alignSelf: 'flex-start',
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 4,
   },
   cardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 5,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#1A1A1A',
   },
   cardLabel: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#888',
   },
 
-  // --- STYLE CALENDRIER ---
-  calendarSection: {
-    marginTop: 10,
+  // --- CARTE CALENDRIER ---
+  calendarCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 3,
   },
   monthSelector: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 25,
+    paddingHorizontal: 10,
+  },
+  arrowButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 20,
   },
   monthText: {
     fontSize: 18,
-    fontWeight: 'bold',
-  },
-  arrowText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '800',
+    color: '#1A1A1A',
+    textTransform: 'capitalize',
   },
   daysHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 15,
-    paddingHorizontal: 5,
   },
   dayHeaderText: {
     width: 40,
     textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  loadingCalendarBox: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   daysGrid: {
     flexDirection: 'row',
@@ -400,7 +444,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5', 
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -409,10 +453,19 @@ const styles = StyleSheet.create({
   },
   dayCircleGreen: {
     backgroundColor: '#65B369',
+    shadowColor: "#65B369",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   dayNumber: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: '#555',
+  },
+  dayNumberGreen: {
+    color: '#fff',
+    fontWeight: '800',
   },
 });

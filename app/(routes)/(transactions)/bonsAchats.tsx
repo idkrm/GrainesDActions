@@ -23,6 +23,7 @@ type BonAchat = {
   lines: string[];
   date_achat: string;
   codeBarre?: string;
+  magasinImage?: string; // Nouvelle info si on veut afficher l'icône du magasin plus tard
 };
 
 const formaterDate = (timestamp: any) => {
@@ -45,7 +46,6 @@ export default function VouchersScreen() {
         const user = auth.currentUser;
         if (!user) return;
 
-        // recuperation des données dans la table RecompenseUser
         const qRecompensesUser = query(
           collection(database, "RecompenseUser"),
           where("id_user", "==", user.uid)
@@ -64,7 +64,6 @@ export default function VouchersScreen() {
           ...doc.data()
         }));
 
-        // details du bon d'achat
         const info = await Promise.all(rawRewards.map(async (item: any) => {
           
           let nomRecompense = "Récompense";
@@ -80,20 +79,17 @@ export default function VouchersScreen() {
             }
           }
 
-          // garde seulement les bons d'achat
           const lowerName = nomRecompense.toLowerCase();
           if (lowerName.includes('don') || lowerName.includes('arbre') || item.id_asso) {
             return null;
           }
 
-          // garde seulement ceux non utilise
           const aEteUtilise = item.date_utilisation && item.date_utilisation !== "";
           if (aEteUtilise) {
             return null;
           }
 
-          // nom magasin
-          let nomMagasin = "Magasin inconnu";
+          let nomMagasin = "Magasin";
           if (item.id_magasin) {
             const magRef = doc(database, "Magasins", String(item.id_magasin));
             const magSnap = await getDoc(magRef);
@@ -102,7 +98,6 @@ export default function VouchersScreen() {
             }
           }
 
-          // date expiration + 4 mois
           const dateAchat = formaterDate(item.date_achat);
           let dateExpiration = "Inconnue";
 
@@ -127,21 +122,29 @@ export default function VouchersScreen() {
           const displayLines = [
             `Valeur : ${montantRecompense} €`,
             `Obtenu le : ${dateAchat}`,
-            `Date d'expiration : ${dateExpiration}`,
+            `Expire le : ${dateExpiration}`,
           ];
 
           return {
             id: item.id,
-            title: nomMagasin, 
-            color: '#BDE2EB', 
+            title: `Bon d'achat ${nomMagasin}`, 
+            color: '#E0F7FA', // Bleu très clair (Soft UI)
             date_achat: item.date_achat,
             lines: displayLines,
-            codeBarre: `CODE-${item.id.substring(0, 6).toUpperCase()}-1234`
+            codeBarre: `${item.id.substring(0, 8).toUpperCase()}`
           };
         }));
 
         const validItems = info.filter((item) => item !== null) as BonAchat[];
-        setVouchers(validItems.reverse()); // les plus recents en haut
+        
+        // Tri par date décroissante
+        validItems.sort((a, b) => {
+          const dateA = a.date_achat ? (a.date_achat as any).toMillis() : 0;
+          const dateB = b.date_achat ? (b.date_achat as any).toMillis() : 0;
+          return dateB - dateA;
+        });
+
+        setVouchers(validItems);
 
       } catch (error) {
         console.error("Erreur récupération bons d'achat:", error);
@@ -153,71 +156,106 @@ export default function VouchersScreen() {
     fetchVouchers();
   }, []);
 
+  // --- RENDU EN COURS DE CHARGEMENT ---
   if (loading) {
     return (
-      <View style={[styles.container, {justifyContent: 'center', alignItems:'center'}]}>
-        <ActivityIndicator size="large" color="#000" />
+      <View style={[styles.mainContainer, styles.center]}>
+        <ActivityIndicator size="large" color="#65B369" />
       </View>
     );
   }
 
+  // --- RENDU FINAL ---
   return (
-    <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="black" />
+    <View style={styles.mainContainer}>
+      
+      {/* HEADER TOP (Bouton retour) */}
+      <View style={styles.headerTop}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+          <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
         </Pressable>
-        <Text style={styles.headerTitle}>Bons d’achats</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* TITRES */}
+        <View style={styles.headerTitles}>
+          <Text style={styles.title}>Mes bons d'achats</Text>
+          <Text style={styles.subtitle}>Utilise tes récompenses en magasin</Text>
+        </View>
+
+        {/* LISTE DES BONS */}
         {vouchers.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#666', marginTop: 20 }}>
-            Aucun bon d'achat disponible.
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="ticket-outline" size={50} color="#ccc" style={{ marginBottom: 15 }} />
+            <Text style={styles.emptyText}>Aucun bon d'achat disponible.</Text>
+            <Text style={styles.emptySubText}>
+              Échange tes points dans la boutique pour obtenir des bons d'achat !
+            </Text>
+          </View>
         ) : (
-          vouchers.map((item) => (
-            <TransactionCard
-              key={item.id}
-              title={item.title} 
-              color={item.color}
-              lines={item.lines}
-              onPress={() => setSelectedVoucher(item)} 
-            />
-          ))
+          <View style={styles.vouchersList}>
+            {vouchers.map((item) => (
+              <View key={item.id} style={styles.cardWrapper}>
+                <TransactionCard
+                  title={item.title} 
+                  color={item.color}
+                  lines={item.lines}
+                  onPress={() => setSelectedVoucher(item)} 
+                />
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
       {/* MODAL CODE BARRE */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={!!selectedVoucher} 
         onRequestClose={() => setSelectedVoucher(null)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setSelectedVoucher(null)}>
-          <Pressable style={styles.bottomSheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.bottomSheetLabel}>
-              Code barre - {selectedVoucher?.title}
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            
+            <Pressable style={styles.closeButton} onPress={() => setSelectedVoucher(null)}>
+                <Ionicons name="close" size={24} color="#333" />
+            </Pressable>
+
+            <View style={styles.modalIconContainer}>
+               <Ionicons name="barcode-outline" size={40} color="#65B369" />
+            </View>
+
+            <Text style={styles.modalTitle}>
+              {selectedVoucher?.title}
+            </Text>
+
+            <Text style={styles.modalInstruction}>
+              Présente ce code à la caisse pour bénéficier de ta réduction.
             </Text>
             
             <View style={styles.barcodeBox}>
+              {/* Simulation visuelle de code barre (barres verticales) */}
+              <View style={styles.barcodeLinesContainer}>
+                 {[...Array(15)].map((_, i) => (
+                   <View key={i} style={[
+                     styles.barcodeLine, 
+                     { width: Math.random() > 0.5 ? 2 : 5, opacity: Math.random() > 0.2 ? 1 : 0.5 }
+                   ]} />
+                 ))}
+              </View>
               <Text style={styles.barcodeText}>
-                {selectedVoucher?.codeBarre || "123456789"}
+                {selectedVoucher?.codeBarre}
               </Text>
             </View>
             
-            <Text style={{marginTop: 15, color: '#666', textAlign: 'center'}}>
-              Valable jusqu'au : {selectedVoucher?.lines[2]?.split(': ')[1]}
-            </Text>
-
-            <Pressable 
-              style={styles.closeButton} 
-              onPress={() => setSelectedVoucher(null)}
-            >
-              <Text style={{color: 'white', fontWeight: 'bold'}}>Fermer</Text>
-            </Pressable>
+            <View style={styles.modalFooterRow}>
+               <Ionicons name="calendar-outline" size={16} color="#666" />
+               <Text style={styles.modalExpiration}>
+                 {selectedVoucher?.lines[2]}
+               </Text>
+            </View>
 
           </Pressable>
         </Pressable>
@@ -228,65 +266,174 @@ export default function VouchersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: 60,
+    backgroundColor: '#FAFAFA', 
+    paddingTop: 50,
   },
-  header: {
-    flexDirection: 'row',
+  center: {
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 30,
   },
-  backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold' },
-  content: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
 
+  // --- HEADER ---
+  headerTop: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    marginLeft: -5,
+  },
+  headerTitles: {
+    marginBottom: 35,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 4,
+  },
+
+  // --- LISTE BONS ---
+  vouchersList: {
+    gap: 15, // Espacement entre les cartes
+  },
+  cardWrapper: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    backgroundColor: 'transparent',
+  },
+
+  // --- EMPTY STATE ---
+  emptyContainer: {
+    marginTop: 60,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  emptySubText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  // --- MODAL CODE BARRE ---
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     padding: 20,
   },
-  bottomSheet: {
+  modalContent: {
+    width: '90%',
     backgroundColor: '#fff', 
-    borderRadius: 20,
-    padding: 30,
+    borderRadius: 24,
+    padding: 25,
     alignItems: 'center',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  bottomSheetLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+    padding: 6,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+  },
+  modalIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalInstruction: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 25,
+    paddingHorizontal: 10,
   },
   barcodeBox: {
     width: '100%',
-    height: 100,
-    borderWidth: 2,
-    borderColor: '#333',
-    borderRadius: 10,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderStyle: 'dashed' 
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    marginBottom: 25,
+  },
+  barcodeLinesContainer: {
+    flexDirection: 'row',
+    height: 60,
+    width: '80%',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  barcodeLine: {
+    backgroundColor: '#000',
+    height: '100%',
   },
   barcodeText: {
-    fontSize: 24,
-    letterSpacing: 3,
-    fontWeight: 'bold'
+    fontSize: 22,
+    letterSpacing: 4,
+    fontWeight: '900',
+    color: '#000',
   },
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: '#333',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 20
+  modalFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+  },
+  modalExpiration: {
+    marginLeft: 6,
+    color: '#555',
+    fontWeight: '600',
+    fontSize: 13,
   }
 });

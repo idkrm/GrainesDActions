@@ -103,20 +103,17 @@ export default function ShopScreen() {
   };
 
   // --- PREPARATION DES LISTES ---
-  // configuration montant possible (don et bon)
   const optionDon = recompenses.find(r => r.nom.toLowerCase().includes('don') && r.optionsCalculees && r.optionsCalculees.length > 0);
   const allDonationOption = optionDon ? optionDon.optionsCalculees : [];
 
   const optionBon = recompenses.find(r => r.nom.toLowerCase().includes('bon d\'achat') && r.optionsCalculees && r.optionsCalculees.length > 0);
   const allVoucherOption = optionBon ? optionBon.optionsCalculees : [];
 
-  // agir pour la planète
   const actionsArbres = recompenses.filter(r => {
       const lower = r.nom.toLowerCase();
       return (lower.includes('arbre') || lower.includes('plantation')) && !r.id_asso && !r.id_magasin;
   });
 
-  // tous les magasins
   const cartesMagasins = magasins.map(mag => ({
       id: `mag-${mag.id}`,
       nom: mag.nom,
@@ -128,7 +125,6 @@ export default function ShopScreen() {
       optionsCalculees: allVoucherOption
   }));
 
-  // toutes les associations
   const cartesAssociations = associations.map(asso => ({
       id: `asso-${asso.id}`,
       nom: asso.nom,
@@ -140,7 +136,6 @@ export default function ShopScreen() {
       optionsCalculees: allDonationOption 
   }));
 
-  // liste les plus populaires
   const populaires = [
       actionsArbres[0],
       cartesAssociations[0],
@@ -148,27 +143,20 @@ export default function ShopScreen() {
   ].filter(item => item !== undefined);
 
   // --- ACHAT ---
-const handleBuy = async () => {
-    // verif user
+  const handleBuy = async () => {
     if (!auth.currentUser) {
         Alert.alert("Erreur", "Vous devez être connecté pour échanger vos points.");
         return;
     }
     const uid = auth.currentUser.uid;
-
-    // nb pts de la recompense
     const coutFinal = (selectedOption ? selectedOption.points : selectedReward?.nb_points) || 0;
-
-    
     const userRef = doc(database, "Users", uid);
     
     try {
         const userSnap = await getDoc(userRef);
-        // recup nb pts user
         const userData = userSnap.data();
         const currentPoints = userData?.nb_points;
 
-        // verif solde
         if (currentPoints < coutFinal) {
             Alert.alert("Solde insuffisant", `Il vous manque ${coutFinal - currentPoints} points.`);
             return;
@@ -196,14 +184,12 @@ const handleBuy = async () => {
             dataToSave.montant = selectedOption ? selectedOption.montant : 0;
         }
 
-        // creation doc pour la table recompenseUser
         await addDoc(collection(database, "RecompenseUser"), dataToSave);
-
         await updateDoc(userRef, {
             nb_points: increment(-coutFinal)
         });
 
-        Alert.alert("Félicitations ! ", "Achat validé avec succès.");
+        Alert.alert("Félicitations ! 🎉", "Achat validé avec succès.");
         setSelectedReward(null);
 
     } catch (error) {
@@ -211,6 +197,7 @@ const handleBuy = async () => {
     }
   };
 
+  // --- COMPOSANT DE CARTE DE RÉCOMPENSE ---
   const RewardCard = ({ item }: { item: Recompense }) => (
     <Pressable style={styles.card} onPress={() => openModal(item)}>
       <View style={styles.imagePlaceholder}>
@@ -218,19 +205,24 @@ const handleBuy = async () => {
           <Image 
             source={{ uri: item.image }} 
             style={styles.image} 
-            resizeMode="contain"
+            resizeMode="cover"
           />
-        ) : <View style={{flex: 1, backgroundColor: '#E0E0E0'}} />}
+        ) : (
+          <View style={styles.noImageContainer}>
+             <Ionicons name="gift-outline" size={30} color="#aaa" />
+          </View>
+        )}
         
         <View style={styles.pointsBadge}>
+            <Ionicons name="star" size={12} color="#F57C00" style={{ marginRight: 4 }} />
             <Text style={styles.pointsText}>
                 {item.optionsCalculees && item.optionsCalculees.length > 0 
-                    ? `Dès ${item.optionsCalculees[0].points} pts`
-                    : `${item.nb_points} pts`}
+                    ? `Dès ${item.optionsCalculees[0].points}`
+                    : `${item.nb_points}`} pts
             </Text>
         </View>
       </View>
-      <Text style={styles.cardTitle} numberOfLines={1}>{item.nom}</Text>
+      <Text style={styles.cardTitle} numberOfLines={2}>{item.nom}</Text>
     </Pressable>
   );
 
@@ -240,20 +232,21 @@ const handleBuy = async () => {
 
   const currentCost = selectedOption ? selectedOption.points : selectedReward?.nb_points;
   const getActionLabel = () => {
-      if (selectedReward?.id_asso) return "Donner";
-      if (selectedReward?.id_magasin) return "Obtenir le bon";
-      return "Obtenir";
+      if (selectedReward?.id_asso) return "Faire un don";
+      if (selectedReward?.id_magasin) return "Obtenir ce bon";
+      return "Planter !";
   };
 
   return (
-      <View style={{flex: 1, backgroundColor: "#fff"}}>
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.mainContainer}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             
-            {/* les plus populaires */}
+            {/* Les plus populaires */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Les plus populaires</Text>
                 <FlatList 
                     horizontal 
+                    showsHorizontalScrollIndicator={false}
                     data={populaires} 
                     keyExtractor={item => item.id} 
                     contentContainerStyle={styles.horizontalList} 
@@ -262,36 +255,12 @@ const handleBuy = async () => {
                 />
             </View>
 
-            {/* bon d'achat*/}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Bons d’achat</Text>
-                <FlatList 
-                    horizontal 
-                    data={cartesMagasins} 
-                    keyExtractor={item => item.id} 
-                    contentContainerStyle={styles.horizontalList} 
-                    renderItem={({ item }) => <RewardCard item={item} />} 
-                    ListEmptyComponent={<Text style={styles.emptyText}>Aucun magasin disponible</Text>} 
-                />
-            </View>
-
-            {/* dons aux associations */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dons aux associations</Text>
-                <FlatList 
-                    horizontal 
-                    data={cartesAssociations} 
-                    keyExtractor={item => item.id} 
-                    contentContainerStyle={styles.horizontalList} 
-                    renderItem={({ item }) => <RewardCard item={item} />} 
-                />
-            </View>
-
-            {/* agir pour la planète */}
+            {/* Agir pour la planète */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Agir pour la planète</Text>
                 <FlatList 
                     horizontal 
+                    showsHorizontalScrollIndicator={false}
                     data={actionsArbres} 
                     keyExtractor={item => item.id} 
                     contentContainerStyle={styles.horizontalList} 
@@ -300,10 +269,36 @@ const handleBuy = async () => {
                 />
             </View>
 
-            <View style={{height: 40}} />
+            {/* Dons aux associations */}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Dons aux associations</Text>
+                <FlatList 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    data={cartesAssociations} 
+                    keyExtractor={item => item.id} 
+                    contentContainerStyle={styles.horizontalList} 
+                    renderItem={({ item }) => <RewardCard item={item} />} 
+                />
+            </View>
+
+            {/* Bons d'achat */}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Bons d’achat</Text>
+                <FlatList 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    data={cartesMagasins} 
+                    keyExtractor={item => item.id} 
+                    contentContainerStyle={styles.horizontalList} 
+                    renderItem={({ item }) => <RewardCard item={item} />} 
+                    ListEmptyComponent={<Text style={styles.emptyText}>Aucun magasin disponible</Text>} 
+                />
+            </View>
+
         </ScrollView>
 
-        {/* --- MODALE --- */}
+        {/* --- MODALE DÉTAIL --- */}
         <Modal animationType="fade" transparent={true} visible={!!selectedReward} onRequestClose={() => setSelectedReward(null)} >
             <Pressable style={styles.modalOverlay} onPress={() => setSelectedReward(null)}>
                 <Pressable style={styles.modalContent} onPress={() => {}} >
@@ -319,11 +314,15 @@ const handleBuy = async () => {
                                 style={styles.modalImage} 
                                 resizeMode={(selectedReward.id_asso || selectedReward.id_magasin) ? "contain" : "cover"} 
                              />
-                        ) : <View style={[styles.modalImage, {backgroundColor: '#eee'}]} />}
+                        ) : (
+                          <View style={styles.noImageContainer}>
+                             <Ionicons name="image-outline" size={50} color="#ccc" />
+                          </View>
+                        )}
                     </View>
 
                     <Text style={styles.modalTitle}>{selectedReward?.nom}</Text>
-                    <Text style={styles.modalDescription}>{selectedReward?.description || "Aucune description."}</Text>
+                    <Text style={styles.modalDescription}>{selectedReward?.description || "Soutenez ce projet grâce à vos points !"}</Text>
 
                     {selectedReward?.optionsCalculees && selectedReward.optionsCalculees.length > 0 && (
                         <View style={styles.donationContainer}>
@@ -350,10 +349,18 @@ const handleBuy = async () => {
                         </View>
                     )}
 
+                    {/* Ligne Infos Prix */}
+                    <View style={styles.modalCostRow}>
+                       <Text style={styles.modalCostLabel}>Coût total :</Text>
+                       <View style={styles.modalPointsBadge}>
+                          <Ionicons name="star" size={16} color="#E65100" style={{marginRight: 6}} />
+                          <Text style={styles.modalPointsText}>{currentCost} pts</Text>
+                       </View>
+                    </View>
+
                     <Pressable style={styles.buyButton} onPress={handleBuy}>
-                        <Text style={styles.buyButtonText}>
-                            {getActionLabel()} pour {currentCost} points
-                        </Text>
+                        <Text style={styles.buyButtonText}>{getActionLabel()}</Text>
+                        <Ionicons name="checkmark-circle-outline" size={20} color="white" style={{marginLeft: 8}} />
                     </Pressable>
 
                 </Pressable>
@@ -365,9 +372,9 @@ const handleBuy = async () => {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: '#FAFAFA',
     paddingTop: 20,
   },
   center: {
@@ -375,127 +382,192 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  
-  // SECTIONS
-  section: { marginBottom: 30 },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: 20,
-    marginBottom: 15,
+  scrollContent: {
+    paddingBottom: 100,
+  },
+
+  // --- SECTIONS ---
+  section: { 
+    marginBottom: 35 
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: 19,
+    fontWeight: "800",
+    color: "#1A1A1A",
     paddingHorizontal: 20, 
-    marginBottom: 10,    
+    marginBottom: 15,    
   },
-  seeAll: { fontSize: 14, color: "#666" },
-  horizontalList: { paddingHorizontal: 20, gap: 15 },
+  horizontalList: { 
+    paddingHorizontal: 20, 
+    gap: 15,
+    paddingVertical: 5, 
+  },
+  emptyText: { color: '#999', fontStyle: 'italic', marginLeft: 20 },
 
-  // CARTES
-  card: { width: 140, marginRight: 0 },
+  // --- CARTES DE RÉCOMPENSES ---
+  card: { 
+    width: 150, 
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 10,
+    marginRight: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
   imagePlaceholder: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: "#FFFFFF", 
-    borderWidth: 1,           
-    borderColor: "#F0F0F0",
+    backgroundColor: "#F9F9F9", 
     borderRadius: 12,
-    marginBottom: 8,
-    position: 'relative',
+    marginBottom: 10,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },
   image: { width: '100%', height: '100%' },
-  cardTitle: { fontSize: 14, fontWeight: "500", color: "#000" },
+  noImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardTitle: { 
+    fontSize: 14, 
+    fontWeight: "700", 
+    color: "#2C3E50",
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   pointsBadge: {
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,
-    elevation: 2,
   },
   pointsText: { fontSize: 12, fontWeight: "bold", color: "#F57C00" },
-  emptyText: { color: '#999', fontStyle: 'italic', marginLeft: 20 },
 
-  // --- STYLES DU MODAL CENTRE ---
+  // --- MODALE ---
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)', 
   },
   modalContent: {
-    width: '85%', 
+    width: '88%', 
     backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 25,
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   closeButton: {
     position: 'absolute',
     top: 15,
     right: 15,
     zIndex: 10,
-    padding: 5,
-    backgroundColor: '#f0f0f0',
+    padding: 6,
+    backgroundColor: '#F5F5F5',
     borderRadius: 20,
   },
   modalImageContainer: {
     width: '100%',
-    aspectRatio: 1,
-    borderRadius: 15,
+    height: 160,
+    borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 20,
-    marginTop: 10,
+    marginTop: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
   },
   modalImage: { width: '100%', height: '100%' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, textAlign: 'center' },
-  modalPointsBadge: {
-    backgroundColor: '#FFE0B2',
-    paddingVertical: 6,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    marginBottom: 20,
+  modalTitle: { 
+    fontSize: 22, 
+    fontWeight: '900', 
+    color: '#1A1A1A',
+    marginBottom: 10, 
+    textAlign: 'center' 
   },
-  modalPointsText: { color: '#E65100', fontWeight: 'bold', fontSize: 16 },
   modalDescription: {
     fontSize: 15,
-    color: '#555',
+    color: '#666',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 25,
   },
-  buyButton: {
-    backgroundColor: '#65B369',
+  
+  // Options de don / bon
+  donationContainer: { width: '100%', marginBottom: 25, alignItems: 'center' },
+  donationLabel: { fontSize: 14, fontWeight: '700', marginBottom: 12, color: '#333' },
+  donationOptions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },
+  amountChip: { 
+    paddingVertical: 10, 
+    paddingHorizontal: 16, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#E0E0E0', 
+    backgroundColor: '#fff', 
+    minWidth: 65, 
+    alignItems: 'center' 
+  },
+  amountChipSelected: { 
+    backgroundColor: '#65B369', 
+    borderColor: '#65B369',
+    shadowColor: "#65B369",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  amountText: { fontSize: 15, fontWeight: 'bold', color: '#555' },
+  amountTextSelected: { color: 'white' },
+
+  // Recapitulatif du prix
+  modalCostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
-    paddingVertical: 15,
-    borderRadius: 30,
+    backgroundColor: '#FFF8E1', 
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  modalCostLabel: { fontSize: 16, fontWeight: '600', color: '#333' },
+  modalPointsBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  buyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  donationContainer: { width: '100%', marginBottom: 20, alignItems: 'center' },
-  donationLabel: { fontSize: 14, fontWeight: '600', marginBottom: 10, color: '#333' },
-  donationOptions: { flexDirection: 'row', gap: 10, marginBottom: 10, flexWrap: 'wrap', justifyContent: 'center' },
-  amountChip: { 
-    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#f9f9f9', minWidth: 60, alignItems: 'center' 
+  modalPointsText: { color: '#E65100', fontWeight: '900', fontSize: 18 },
+
+  // Bouton d'achat
+  buyButton: {
+    flexDirection: 'row',
+    backgroundColor: '#65B369',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: "#65B369",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  amountChipSelected: { backgroundColor: '#65B369', borderColor: '#65B369' },
-  amountText: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  amountTextSelected: { color: 'white' },
+  buyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });

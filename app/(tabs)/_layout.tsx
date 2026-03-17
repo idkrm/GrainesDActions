@@ -1,7 +1,7 @@
+import { COLORS } from "@/constants/colors";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Text, View } from 'react-native';
-import { COLORS } from "@/constants/colors";
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -17,15 +17,12 @@ const PointsBadge = () => {
     const [points, setPoints] = useState<number>(0);
 
     useEffect(() => {
-        // écoute Auth : quand l'utilisateur se connecte/se déconnecte
         const unsubAuth = auth.onAuthStateChanged((user) => {
-            // si pas connecté -> 0
             if (!user) {
                 setPoints(0);
                 return;
             }
 
-            // écoute en temps réel du document utilisateur
             const userRef = doc(db, "Users", user.uid);
             const unsubUser = onSnapshot(
                 userRef,
@@ -43,7 +40,6 @@ const PointsBadge = () => {
                 }
             );
 
-            // IMPORTANT : quand l'utilisateur change, on coupe l'ancien listener
             return unsubUser;
         });
 
@@ -51,20 +47,21 @@ const PointsBadge = () => {
     }, []);
 
     return (
-        <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: '#f0f0f0',
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 20,
-            marginRight: 15,
-        }}>
-            <Ionicons name="leaf" size={16} color={COLORS.primaryGreen} style={{ marginRight: 5 }} />
+        <View style={styles.badgeContainer}>
+            <Ionicons name="star" size={14} color="#F57C00" style={{ marginRight: 6 }} />
+            <Text style={styles.badgeText}>{points} pts</Text>
+        </View>
+    );
+};
 
-            <Text style={{ fontWeight: 'bold', color: '#333' }}>
-                {points}
-            </Text>
+const TabIcon = ({ focused, IconComponent, iconName }: any) => {
+    return (
+        <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+            <IconComponent
+                name={iconName}
+                color={focused ? COLORS.primaryGreen : '#999'}
+                size={22} 
+            />
         </View>
     );
 };
@@ -73,37 +70,40 @@ export default function RootLayout() {
     return (
         <Tabs
             screenOptions={{
-                // barre de navigation
+                // --- BARRE DE NAVIGATION (BOTTOM TAB) ---
                 tabBarShowLabel: false,
-
                 tabBarStyle: {
-                    backgroundColor: 'white',
-                    height: 100,
+                    backgroundColor: '#ffffff',
+                    height: Platform.OS === 'ios' ? 95 : 75,
                     borderTopLeftRadius: 30,
                     borderTopRightRadius: 30,
-                    borderWidth: 1,
-                    borderBottomWidth: 0,
-                    borderColor: 'grey',
-                    paddingTop: 20,
+                    borderTopWidth: 0, 
+                    position: 'absolute',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 10,
+                    elevation: 10, 
                 },
-                tabBarActiveTintColor: COLORS.primaryGreen,
 
-                // header
+                // --- HEADER (EN-TÊTE) ---
                 headerTitleAlign: 'left',
                 headerTitleStyle: {
                     fontSize: 24,
+                    fontWeight: '900',
+                    color: '#1A1A1A',
                 },
-
                 headerLeftContainerStyle: {
                     paddingLeft: 20,
                 },
-
+                headerRightContainerStyle: {
+                    paddingRight: 20,
+                },
                 headerRight: () => <PointsBadge />,
-
                 headerShadowVisible: false,
                 headerStyle: {
-                    backgroundColor: 'white',
-                    height: 100,
+                    backgroundColor: '#FAFAFA',
+                    height: 110,
                 }
             }}
         >
@@ -111,46 +111,15 @@ export default function RootLayout() {
                 name="index"
                 options={{
                     title: "Accueil",
-                    tabBarIcon: ({ focused }) => (
-                        <View style={{
-                            backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
-                            borderRadius: 30,
-                            height: 50,
-                            width: 50,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: focused ? 5 : 0
-                        }}>
-                            <Ionicons
-                                name="home"
-                                color='black'
-                                size={24}
-                            />
-                        </View>
-                    ),
+                    tabBarIcon: ({ focused }) => <TabIcon focused={focused} IconComponent={Ionicons} iconName="home" />,
                 }}
             />
 
             <Tabs.Screen
                 name="challenge"
                 options={{
-                    title: "Défis",
-                    tabBarIcon: ({ focused }) => (
-                        <View style={{
-                            backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
-                            borderRadius: 30,
-                            height: 50,
-                            width: 50,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: focused ? 5 : 0
-                        }}>
-                            <Feather
-                                name='target'
-                                color='black'
-                                size={24} />
-                        </View>
-                    ),
+                    title: "Catalogue des défis",
+                    tabBarIcon: ({ focused }) => <TabIcon focused={focused} IconComponent={Feather} iconName="target" />,
                 }}
             />
 
@@ -158,22 +127,7 @@ export default function RootLayout() {
                 name="leaderboard"
                 options={{
                     title: "Classement",
-                    tabBarIcon: ({ focused }) => (
-                        <View style={{
-                            backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
-                            borderRadius: 30,
-                            height: 50,
-                            width: 50,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: focused ? 5 : 0
-                        }}>
-                            <MaterialIcons
-                                name='leaderboard'
-                                color='black'
-                                size={24} />
-                        </View>
-                    ),
+                    tabBarIcon: ({ focused }) => <TabIcon focused={focused} IconComponent={MaterialIcons} iconName="leaderboard" />,
                 }}
             />
 
@@ -181,22 +135,7 @@ export default function RootLayout() {
                 name="shop"
                 options={{
                     title: "Boutique",
-                    tabBarIcon: ({ focused }) => (
-                        <View style={{
-                            backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
-                            borderRadius: 30,
-                            height: 50,
-                            width: 50,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: focused ? 5 : 0
-                        }}>
-                            <Entypo
-                                name='shop'
-                                color='black'
-                                size={24} />
-                        </View>
-                    ),
+                    tabBarIcon: ({ focused }) => <TabIcon focused={focused} IconComponent={Entypo} iconName="shop" />,
                 }}
             />
 
@@ -204,24 +143,45 @@ export default function RootLayout() {
                 name="profile"
                 options={{
                     title: "Profil",
-                    tabBarIcon: ({ focused }) => (
-                        <View style={{
-                            backgroundColor: focused ? COLORS.primaryGreen : 'transparent',
-                            borderRadius: 30,
-                            height: 50,
-                            width: 50,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: focused ? 5 : 0
-                        }}>
-                            <FontAwesome6
-                                name='face-grin-wide'
-                                color='black'
-                                size={24} />
-                        </View>
-                    ),
+                    tabBarIcon: ({ focused }) => <TabIcon focused={focused} IconComponent={FontAwesome6} iconName="face-grin-wide" />,
                 }}
             />
         </Tabs>
     );
 }
+
+const styles = StyleSheet.create({
+    // Style du badge de points
+    badgeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF3E0',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        shadowColor: "#F57C00",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    badgeText: {
+        fontWeight: '900',
+        color: '#E65100',
+        fontSize: 14,
+    },
+
+    // Style des icônes de la barre de navigation
+    iconWrapper: {
+        borderRadius: 20,
+        height: 46,
+        width: 46,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 35,
+    },
+    iconWrapperActive: {
+        backgroundColor: '#E8F5E9',
+        transform: [{ translateY: -5 }], 
+    }
+});

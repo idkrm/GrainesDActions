@@ -1,8 +1,8 @@
 import { db } from '@/firebaseBD/firebaseConfig';
+import { Ionicons } from '@expo/vector-icons';
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../../constants/colors';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface Users {
   id?: string;
@@ -11,162 +11,172 @@ interface Users {
 }
 
 export default function LeaderboardScreen() {
-  const [activeTab, setActiveTab] = useState<'week' | 'month'>('week');
   const [classement, setClassement] = useState<Users[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- Récupération des données de la collection Users ---
   useEffect(() => {
-    // --- Référence à la collection Users ---
     const usersRef = collection(db, 'Users');
 
-    // --- Requête permettant de trier les points et mettre une limite d'utilisateurs sur le classement ---
     const req = query(
       usersRef,
       orderBy("nb_points", "desc"),
-      limit(5),
-    )
+      limit(15)
+    );
 
-    // --- Changement en temps réel des données à partir de la base de données ---
-    const change = onSnapshot(req, (snapshot) => {
-      const users = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ... doc.data() as Users[]
-      }))
-      setClassement(users)
-    })
-    return () => change();
-  })
+    const unsub = onSnapshot(req, (snapshot) => {
+      const users = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          pseudo: data.pseudo || "Éco-citoyen",
+          nb_points: data.nb_points || 0 
+        };
+      });
+      setClassement(users as Users[]);
+      setLoading(false);
+    }, (error) => {
+      console.error("Erreur lors du chargement du classement :", error);
+      setLoading(false);
+    });
 
-  // On sépare le podium (top 3) du reste de la liste
+    return () => unsub();
+  }, []);
+
   const topThree = classement.slice(0, 3);
   const restOfList = classement.slice(3);
 
   return (
     <View style={styles.container}>
-      
-      {/* 1. LE SÉLECTEUR (par semaine ou mois) */}
-      <View style={styles.toggleContainer}>
-        <Pressable 
-          style={[styles.toggleButton, activeTab === 'week' && styles.activeToggle]}
-          onPress={() => setActiveTab('week')}
-        >
-          <Text style={[styles.toggleText, activeTab === 'week' ? styles.activeText : styles.inactiveText]}>
-            Cette semaine
-          </Text>
-        </Pressable>
+      {loading ? (
+        <View style={styles.center}>
+           <ActivityIndicator size="large" color="#65B369" />
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          
+          {classement.length > 0 && (
+            <View style={styles.podiumContainer}>
+              {/* RANK 2 */}
+              <PodiumBar 
+                rank={2} 
+                username={topThree[1]?.pseudo}
+                points={topThree[1]?.nb_points} 
+                color="#81C784" 
+                height={120} 
+              />
 
-        <Pressable 
-          style={[styles.toggleButton, activeTab === 'month' && styles.activeToggle]}
-          onPress={() => setActiveTab('month')}
-        >
-          <Text style={[styles.toggleText, activeTab === 'month' ? styles.activeText : styles.inactiveText]}>
-            Ce mois
-          </Text>
-        </Pressable>
-      </View>
+              {/* RANK 1 */}
+              <PodiumBar 
+                rank={1} 
+                username={topThree[0]?.pseudo}
+                points={topThree[0]?.nb_points} 
+                color="#4FC3F7"
+                height={160} 
+                isFirst
+              />
 
-      {/* 2. LE PODIUM */}
-      <View style={styles.podiumContainer}>
-        {/* RANK 2 */}
-        <PodiumBar 
-          rank={2} 
-          username={topThree[1]?.pseudo}
-          points={topThree[1]?.nb_points} 
-          color={COLORS.primaryGreen} 
-          height={160} 
-        />
-
-        {/* RANK 1 */}
-        <PodiumBar 
-          rank={1} 
-          username={topThree[0]?.pseudo}
-          points={topThree[0]?.nb_points} 
-          color={COLORS.primaryBlue}
-          height={220} 
-          isFirst
-        />
-
-        {/* RANK 3 */}
-        <PodiumBar 
-          rank={3}
-          username={topThree[2]?.pseudo}
-          points={topThree[2]?.nb_points} 
-          color={COLORS.primaryYellow} 
-          height={120} 
-        />
-      </View>
-
-      {/* 3. LA LISTE (Reste du classement) */}
-      <View style={styles.listContainer}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {restOfList.map((item, index) => (
-            <View key={item.id} style={styles.listItem}>
-              <Text style={styles.rankText}>#{index + 4}</Text>
-              <Text style= {{marginLeft: 20, fontSize: 16, fontWeight: 500}}>{item.pseudo}</Text>
-              <View style={{flex: 1}} /> 
-              <Text style={styles.pointsText}>[{item.nb_points} points]</Text>
+              {/* RANK 3 */}
+              <PodiumBar 
+                rank={3}
+                username={topThree[2]?.pseudo}
+                points={topThree[2]?.nb_points} 
+                color="#FFD54F"
+                height={90} 
+              />
             </View>
-          ))}
-          <View style={{height: 20}} />
-        </ScrollView>
-      </View>
+          )}
 
+          {/* 3. LA LISTE (Reste du classement) */}
+          <View style={styles.listContainer}>
+            {restOfList.map((item, index) => (
+              <View key={item.id} style={styles.listItemCard}>
+                
+                <View style={styles.rankCircle}>
+                  <Text style={styles.rankText}>{index + 4}</Text>
+                </View>
+
+                <Text style={styles.listPseudo} numberOfLines={1}>{item.pseudo}</Text>
+                
+                <View style={styles.pointsBadge}>
+                  <Ionicons name="star" size={12} color="#F57C00" style={{marginRight: 4}} />
+                  <Text style={styles.pointsText}>{item.nb_points} pts</Text>
+                </View>
+
+              </View>
+            ))}
+
+            {classement.length === 0 && (
+               <Text style={styles.emptyText}>Aucun utilisateur classé pour le moment.</Text>
+            )}
+            
+            {restOfList.length === 0 && classement.length > 0 && (
+               <Text style={styles.emptyText}>C'est tout pour le moment !</Text>
+            )}
+          </View>
+
+        </ScrollView>
+      )}
     </View>
   );
 }
 
-// composant pour les barres du podium
-const PodiumBar = ({ rank, points, color, height, username, isFirst }: any) => (
-  <View style={styles.barWrapper}>
-    <View style={[styles.bar, { backgroundColor: color, height: height }]}>
-      <Text style={styles.barRank}>{rank}</Text>
+// Composant PodiumBar
+const PodiumBar = ({ rank, points, color, height, username, isFirst }: any) => {
+  if (!username) return <View style={{ width: 90 }} />; 
+
+  return (
+    <View style={styles.barWrapper}>
+      {/* Couronne pour le 1er */}
+      {isFirst && <Ionicons name="crown" size={32} color="#FFD700" style={styles.crown} />}
+      
+      {/* Avatar */}
+      <View style={[styles.avatar, { borderColor: color }]}>
+        <Ionicons name="person" size={24} color={color} />
+      </View>
+
+      {/* Barre */}
+      <View style={[styles.bar, { backgroundColor: color, height: height }]}>
+        <Text style={styles.barRank}>{rank}</Text>
+      </View>
+
+      {/* Infos joueur */}
+      <Text style={styles.podiumPseudo} numberOfLines={1}>{username}</Text>
+      <View style={styles.podiumPointsBadge}>
+        <Text style={styles.podiumPointsText}>{points || 0} pts</Text>
+      </View>
     </View>
-    <Text>{username}</Text>
-    <Text style={styles.barPoints}>[{points} pts]</Text>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', 
-    paddingTop: 20,
+    backgroundColor: '#FAFAFA',
+    paddingTop: 50,
   },
-  
-  // --- TOGGLE ---
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFE0B2',
-    borderRadius: 25,
-    marginHorizontal: 40,
-    marginBottom: 30,
-    padding: 4,
-    height: 40,
-  },
-  toggleButton: {
+  center: {
     flex: 1,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  activeToggle: {
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000', 
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
+  scrollContent: {
+    paddingBottom: 100,
   },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '500',
+
+  // --- HEADER ---
+  header: {
+    paddingHorizontal: 20,
+    marginBottom: 30, 
   },
-  activeText: {
-    color: '#333',
-    fontWeight: 'bold',
+  title: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#1A1A1A',
   },
-  inactiveText: {
-    color: '#888',
+  subtitle: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 4,
   },
 
   // --- PODIUM ---
@@ -174,63 +184,126 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-end', 
-    gap: 15, 
-    marginBottom: 30,
+    gap: 12, 
+    marginBottom: 40,
     paddingHorizontal: 20,
   },
   barWrapper: {
     alignItems: 'center',
     justifyContent: 'flex-end',
+    width: 90,
+  },
+  crown: {
+    position: 'absolute',
+    top: -45,
+    zIndex: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: -15, 
+    zIndex: 2,
   },
   bar: {
-    width: 80, 
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    justifyContent: 'flex-end',
+    width: '100%', 
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 10,
-    marginBottom: 5,
+    paddingTop: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   barRank: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: 32,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.7)', 
   },
-  barPoints: {
-    fontSize: 12,
+  podiumPseudo: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  podiumPointsBadge: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  podiumPointsText: {
+    fontSize: 11,
     color: '#666',
+    fontWeight: 'bold',
   },
 
   // --- LISTE ---
   listContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    borderTopLeftRadius: 30, 
-    borderTopRightRadius: 30,
-    paddingHorizontal: 30,
-    paddingTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 5,
+    paddingHorizontal: 20,
   },
-  listItem: {
+  listItemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  rankCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
   },
   rankText: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: '900',
-    color: '#000',
+    color: '#888',
+  },
+  listPseudo: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   pointsText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#E65100',
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#888",
     fontSize: 14,
-    color: '#666',
+    marginTop: 20,
+    fontStyle: 'italic'
   },
 });

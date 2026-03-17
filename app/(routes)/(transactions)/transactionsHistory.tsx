@@ -24,7 +24,7 @@ type HistoryItem = {
 };
 
 const formaterDate = (timestamp: any) => {
-  if (timestamp.toDate) {
+  if (timestamp && timestamp.toDate) {
     return timestamp.toDate().toLocaleDateString("fr-FR");
   }
   return "Date inconnue";
@@ -50,20 +50,19 @@ export default function TransactionsScreen() {
 
         const snapshot = await getDocs(qRecompensesUser);
 
-        // si aucun user
+        // si aucun echange
         if (snapshot.empty) {
           setHistoryItems([]);
           setLoading(false);
           return;
         }
 
-        // recompense user
         const recompense = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
 
-        // details recompenses (nom, asso/magasin, montant, detail, points)
+        // details recompenses
         const info = await Promise.all(recompense.map(async (item: any) => {
           let nomRecompense = "Récompense";
           let descriptionRecompense = "";
@@ -95,7 +94,6 @@ export default function TransactionsScreen() {
           let nom = "Inconnu";
 
           if (isDon) {
-            // cas don : nom de l'asso
             if (item.id_asso) {
               const assoRef = doc(database, "Assos", String(item.id_asso));
               const assoSnap = await getDoc(assoRef);
@@ -108,7 +106,6 @@ export default function TransactionsScreen() {
             nom = "Plantation d'un arbre";
           } 
           else {
-            // Cas bon d'achat : nom du magasin
             if (item.id_magasin) {
               const magRef = doc(database, "Magasins", String(item.id_magasin));
               const magSnap = await getDoc(magRef);
@@ -118,16 +115,16 @@ export default function TransactionsScreen() {
             }
           }
 
-          // si bon d'achat non utilise
           const aEteUtilise = item.date_utilisation && item.date_utilisation !== "";
           
+          // On n'affiche pas les bons d'achat NON utilisés (ils sont dans l'autre page)
           if (!isDon && !aEteUtilise && !isArbre) {
             return null;
           }
 
           const displayLines = [
             points ? `Coût : ${points} points` : null,
-            `Détail : ${descriptionRecompense}`,
+            descriptionRecompense ? `Détail : ${descriptionRecompense}` : null,
             `Obtenu le : ${formaterDate(item.date_achat)}`
           ];
 
@@ -135,15 +132,15 @@ export default function TransactionsScreen() {
             displayLines.push(`Utilisé le : ${formaterDate(item.date_utilisation)}`);
           }
 
-          // montant si don
-          if(isDon && item.montant) {
+          if (isDon && item.montant) {
             displayLines.push(`Montant : ${item.montant} €`);
           }
 
           return {
             id: item.id,
             title: nom, 
-            color: isDon ? '#65B369' : '#BDE2EB', 
+            // Couleurs pastels Soft UI selon le type d'action
+            color: isDon || isArbre ? '#E8F5E9' : '#F5F5F5', 
             date_achat: item.date_achat,
             lines: displayLines.filter(Boolean) as string[]
           };
@@ -151,7 +148,14 @@ export default function TransactionsScreen() {
 
         const validItems = info.filter((item) => item !== null) as HistoryItem[];
         
-        setHistoryItems(validItems.reverse()); // pour voir les derniers ajouts en haut
+        // VRAI TRI CHRONOLOGIQUE DÉCROISSANT
+        validItems.sort((a, b) => {
+            const dateA = a.date_achat ? (a.date_achat as any).toMillis() : 0;
+            const dateB = b.date_achat ? (b.date_achat as any).toMillis() : 0;
+            return dateB - dateA;
+        });
+
+        setHistoryItems(validItems); 
 
       } catch (error) {
         console.error("Erreur récupération historique:", error);
@@ -165,35 +169,51 @@ export default function TransactionsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, {justifyContent: 'center', alignItems:'center'}]}>
-        <ActivityIndicator size="large" color="#000" />
+      <View style={[styles.mainContainer, styles.center]}>
+        <ActivityIndicator size="large" color="#65B369" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="black" />
+    <View style={styles.mainContainer}>
+      
+      {/* HEADER TOP (Bouton retour) */}
+      <View style={styles.headerTop}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+          <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
         </Pressable>
-        <Text style={styles.headerTitle}>Historique</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* TITRES */}
+        <View style={styles.headerTitles}>
+          <Text style={styles.title}>Historique</Text>
+          <Text style={styles.subtitle}>Retrouve toutes tes bonnes actions</Text>
+        </View>
+
+        {/* LISTE DES TRANSACTIONS */}
         {historyItems.length === 0 ? (
-          <Text style={{ textAlign: 'center', color: '#666', marginTop: 20 }}>
-            Aucun historique disponible.
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="time-outline" size={50} color="#ccc" style={{ marginBottom: 15 }} />
+            <Text style={styles.emptyText}>Aucun historique disponible.</Text>
+            <Text style={styles.emptySubText}>
+              Tes futurs dons, arbres plantés et bons d'achats utilisés apparaîtront ici !
+            </Text>
+          </View>
         ) : (
-          historyItems.map((item, index) => (
-            <TransactionCard
-              key={item.id}
-              title={item.title}
-              color={item.color}
-              lines={item.lines}
-            />
-          ))
+          <View style={styles.listContainer}>
+            {historyItems.map((item) => (
+              <View key={item.id} style={styles.cardWrapper}>
+                <TransactionCard
+                  title={item.title}
+                  color={item.color}
+                  lines={item.lines}
+                />
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
@@ -202,9 +222,77 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 60 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 30 },
-  backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold' },
-  content: { paddingHorizontal: 20, paddingBottom: 40 },
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+    paddingTop: 50,
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+
+  // --- HEADER ---
+  headerTop: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    marginLeft: -5,
+  },
+  headerTitles: {
+    marginBottom: 35,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 4,
+  },
+
+  // --- LISTE ---
+  listContainer: {
+    gap: 15,
+  },
+  cardWrapper: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    backgroundColor: 'transparent',
+  },
+
+  // --- EMPTY STATE ---
+  emptyContainer: {
+    marginTop: 60,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  emptySubText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    lineHeight: 20,
+  },
 });

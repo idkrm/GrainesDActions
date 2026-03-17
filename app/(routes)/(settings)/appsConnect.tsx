@@ -98,40 +98,75 @@ export default function ConnectAppsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="black" />
+      
+      {/* HEADER TOP (Bouton retour) */}
+      <View style={styles.headerTop}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+          <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
         </Pressable>
-        <Text style={styles.headerTitle}>Connexion</Text>
       </View>
 
       <View style={styles.content}>
         
+        {/* TITRES */}
+        <View style={styles.headerTitles}>
+          <Text style={styles.title}>Applications</Text>
+          <Text style={styles.subtitle}>Synchronise tes activités sportives</Text>
+        </View>
+
+        {/* ENCART D'INFORMATION */}
+        <View style={styles.infoBox}>
+          <Ionicons name="information-circle" size={24} color="#65B369" style={{ marginRight: 10 }} />
+          <Text style={styles.infoText}>
+            Connecte tes applications pour valider automatiquement tes défis de marche, course ou vélo !
+          </Text>
+        </View>
+
         {/* BOUTON STRAVA */}
         <Pressable 
-            style={[styles.appButton, loading && { opacity: 0.7 }]} 
+            style={[styles.appCard, loading && { opacity: 0.7 }]} 
             disabled={!request || loading}
             onPress={() => promptAsync()}
         >
+          <View style={[styles.logoWrapper, { backgroundColor: '#FFF3E0' }]}>
             <Image
-              style={styles.logoPlaceholder}
-              source={{
-                uri: 'https://images.icon-icons.com/2429/PNG/512/strava_logo_icon_147232.png',
-              }}
+              style={styles.logoImage}
+              source={{ uri: 'https://images.icon-icons.com/2429/PNG/512/strava_logo_icon_147232.png' }}
+              resizeMode="contain"
             />
-          <Text style={styles.appText}>Strava</Text>
-          {loading && <ActivityIndicator color="#FC4C02" />}
+          </View>
+          
+          <View style={styles.appTexts}>
+            <Text style={styles.appName}>Strava</Text>
+            <Text style={styles.appStatus}>Appuyer pour connecter</Text>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator color="#FC4C02" />
+          ) : (
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          )}
         </Pressable>
 
         {/* BOUTON FITBIT */}
-        <Pressable style={styles.appButton} onPress={() => Alert.alert("Patience...", "L'intégration Fitbit arrive bientôt !")}>
-          <Image
-              style={styles.logoPlaceholder}
-              source={{
-                uri: 'https://companieslogo.com/img/orig/FIT.defunct-1627f32e.png?t=1720244491',
-              }}
+        <Pressable 
+          style={styles.appCard} 
+          onPress={() => Alert.alert("Patience...", "L'intégration Fitbit arrive très bientôt !")}
+        >
+          <View style={[styles.logoWrapper, { backgroundColor: '#E0F7FA' }]}>
+            <Image
+              style={[styles.logoImage, { width: 24, height: 24 }]} // Légèrement réduit pour fitbit
+              source={{ uri: 'https://companieslogo.com/img/orig/FIT.defunct-1627f32e.png?t=1720244491' }}
+              resizeMode="contain"
             />
-          <Text style={styles.appText}>Fitbit</Text>
+          </View>
+          
+          <View style={styles.appTexts}>
+            <Text style={styles.appName}>Fitbit</Text>
+            <Text style={styles.appStatus}>Bientôt disponible</Text>
+          </View>
+
+          <Ionicons name="time-outline" size={20} color="#ccc" />
         </Pressable>
 
       </View>
@@ -140,23 +175,97 @@ export default function ConnectAppsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingTop: 60 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 20, marginBottom: 50 },
-  backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold' },
-  content: { paddingHorizontal: 20, gap: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FAFAFA', // Fond Soft UI 
+    paddingTop: 50,
+  },
+  content: { 
+    paddingHorizontal: 20, 
+  },
   
-  appButton: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: '#333', borderRadius: 12,
-    paddingVertical: 15, paddingHorizontal: 20, backgroundColor: '#fff',
+  // --- HEADER ---
+  headerTop: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
   },
-  logoPlaceholder: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center', marginRight: 20,
+  backButton: {
+    alignSelf: 'flex-start',
+    padding: 5,
+    marginLeft: -5,
   },
-  appText: {
-    fontSize: 16, fontWeight: '500', color: '#000',
-    flex: 1, textAlign: 'left', 
+  headerTitles: {
+    marginBottom: 25,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 4,
+  },
+
+  // --- ENCART INFO ---
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#E8F5E9', // Vert très clair
+    padding: 15,
+    borderRadius: 16,
+    marginBottom: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#2E7D32',
+    lineHeight: 20,
+  },
+
+  // --- CARTES APPLICATIONS ---
+  appCard: {
+    flexDirection: 'row', 
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 15,
+    // Ombres Soft UI
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  logoWrapper: {
+    width: 50, 
+    height: 50, 
+    borderRadius: 14,
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 15,
+  },
+  logoImage: {
+    width: 30, 
+    height: 30, 
+  },
+  appTexts: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  appName: {
+    fontSize: 17, 
+    fontWeight: '700', 
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  appStatus: {
+    fontSize: 13,
+    color: '#888',
+    fontWeight: '500',
   },
 });
