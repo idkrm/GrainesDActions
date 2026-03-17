@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 import { DefiCard, SearchBar } from "../components/SharedComponents";
@@ -9,7 +9,7 @@ import { database } from "../firebaseConfig";
 
 interface Defi {
   id: string;
-  categorie: string[];
+  categorie: number[];
   co2: number;
   nom: string;
   description: string;
@@ -26,8 +26,24 @@ export default function ChallengeScreen() {
   const [defis, setDefis] = useState<Defi[]>([]);
   const [chargement, setChargement] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [categoryMap, setCategoryMap] = useState<Record<number, string>>({});
 
   useEffect(() => {
+    // 1. Charger les noms des catégories pour éviter le crash toLowerCase
+    const fetchCategoryNames = async () => {
+      try {
+        const snap = await getDocs(collection(database, "Categories"));
+        const mapping: Record<number, string> = {};
+        snap.forEach(docSnap => {
+          mapping[Number(docSnap.id)] = docSnap.data().nom;
+        });
+        setCategoryMap(mapping);
+      } catch (e) {
+        console.error("Erreur chargement catégories :", e);
+      }
+    };
+
+    // 2. Écoute des défis en temps réel
     const unsub = onSnapshot(
       collection(database, "Defis"),
       (snapshot) => {
@@ -43,6 +59,8 @@ export default function ChallengeScreen() {
         setChargement(false);
       }
     );
+
+    fetchCategoryNames();
     return () => unsub();
   }, []);
 
@@ -71,22 +89,27 @@ export default function ChallengeScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            
-            <View style={styles.cardContainer}>
-              <DefiCard 
-                item={item} 
-                cardWidth="100%" 
-                onPress={() => {
-                  router.push({
-                    pathname: "/(routes)/challengeDescription",
-                    params: { id: item.id },
-                  });
-                }} 
-              />
-            </View>
-            
-          )}
+          renderItem={({ item }) => {
+            const itemAvecNoms = {
+              ...item,
+              categorie: item.categorie?.map(id => categoryMap[id] || "Défi") || []
+            };
+
+            return (
+              <View style={styles.cardContainer}>
+                <DefiCard 
+                  item={itemAvecNoms} 
+                  cardWidth="100%" 
+                  onPress={() => {
+                    router.push({
+                      pathname: "/(routes)/challengeDescription",
+                      params: { id: item.id },
+                    });
+                  }} 
+                />
+              </View>
+            );
+          }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={40} color="#ccc" style={{ marginBottom: 10 }}/>
