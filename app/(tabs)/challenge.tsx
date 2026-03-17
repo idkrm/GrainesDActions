@@ -9,7 +9,7 @@ import { database } from "../firebaseConfig";
 
 interface Defi {
   id: string;
-  categorie?: unknown;
+  categorie: string[];
   co2: number;
   nom: string;
   description: string;
