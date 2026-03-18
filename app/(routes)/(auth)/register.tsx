@@ -127,7 +127,7 @@ export default function RegisterScreen() {
       } else if (code === "permission-denied") {
         firebaseErrors.general = "Permissions Firestore insuffisantes (vérifie les Rules et la collection 'users').";
       } else {
-        firebaseErrors.general = `Erreur: ${code ?? "inconnue"} | ${error?.message ?? ""}`;
+        firebaseErrors.general = `Erreur: ${code ?? "inconnue"}`;
       }
 
       setErrors(firebaseErrors);
@@ -135,7 +135,10 @@ export default function RegisterScreen() {
   };
 
   return (
-      <ScrollView>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} // <--- Modification ici
+        showsVerticalScrollIndicator={false}
+      >
         <AuthContainer>
           <Text style={styles.title}>Création de compte</Text>
 
@@ -243,6 +246,12 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Nouveau style pour le centrage vertical
+  scrollContent: {
+    flexGrow: 1,           
+    justifyContent: 'center', 
+    paddingVertical: 40,   
+  },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
@@ -276,6 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 10,
     marginBottom: 20,
+    alignSelf: 'center',
   },
   footerText: {
     color: COLORS.textDark,

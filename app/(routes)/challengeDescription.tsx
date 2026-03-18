@@ -12,7 +12,7 @@ import {
     View
 } from "react-native";
 
-import { auth, db } from "@/firebaseBD/firebaseConfig";
+// CORRECTION DE L'IMPORT : On utilise le même fichier pour auth et database
 import {
     arrayRemove,
     arrayUnion,
@@ -22,9 +22,33 @@ import {
     getDocs,
     runTransaction,
 } from "firebase/firestore";
+import { auth, database } from "../firebaseConfig";
+
+const IMAGES_LOCALES: Record<string, any> = {
+  "covoiturage.png": require("@/assets/images/covoiturage.png"),
+  "composte.png": require("@/assets/images/composte.png"),
+  "repas.png": require("@/assets/images/repas.png"),
+  "gourde.png": require("@/assets/images/gourde.png"),
+  "recuperateur.png": require("@/assets/images/recuperateur.png"),
+  "occasion.png": require("@/assets/images/occasion.png"),
+  "produit.png": require("@/assets/images/produit.png"),
+  "linge.png": require("@/assets/images/linge.png"),
+  "local.png": require("@/assets/images/local.png"),
+  "mail.png": require("@/assets/images/mail.png"),
+  "sac.png": require("@/assets/images/sac.png"),
+  "marche.png": require("@/assets/images/marche.png"),
+  "bocal.png": require("@/assets/images/bocal.png"),
+  "sansviande.png": require("@/assets/images/sansviande.png"),
+  "trier.png": require("@/assets/images/trier.png"),
+  "pas.png": require("@/assets/images/pas.png"),
+  "nettoyage.png": require("@/assets/images/nettoyage.png"),
+  "appareil.png": require("@/assets/images/appareil.png"),
+  "dechet.png": require("@/assets/images/dechet.png"),
+  "papier.png": require("@/assets/images/papier.png"),
+};
 
 interface Defi {
-    categorie?: number[]; // IDs numériques
+    categorie?: number[];
     co2?: number;
     nom?: string;
     description?: string;
@@ -54,14 +78,14 @@ export default function ChallengeDescription() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const snap = await getDocs(collection(db, "Categories"));
+                const snap = await getDocs(collection(database, "Categories"));
                 const mapping: Record<number, string> = {};
                 snap.forEach(docSnap => {
                     mapping[Number(docSnap.id)] = docSnap.data().nom;
                 });
                 setCategoryMap(mapping);
             } catch (e) {
-                console.error("Erreur chargement catégories :", e);
+                console.error("Erreur catégories :", e);
             }
         };
         fetchCategories();
@@ -74,7 +98,7 @@ export default function ChallengeDescription() {
                 setLoadingDefi(true);
                 if (!defiId) return;
 
-                const ref = doc(db, "Defis", String(defiId));
+                const ref = doc(database, "Defis", String(defiId));
                 const snap = await getDoc(ref);
 
                 if (snap.exists()) setDefi(snap.data() as Defi);
@@ -96,20 +120,16 @@ export default function ChallengeDescription() {
             try {
                 setCheckingUser(true);
                 const user = auth.currentUser;
-                if (!user || !defiId) {
-                    setAlreadyAccepted(false);
-                    return;
-                }
+                if (!user || !defiId) return;
 
-                const userSnap = await getDoc(doc(db, "Users", user.uid));
+                const userSnap = await getDoc(doc(database, "Users", user.uid));
                 if (userSnap.exists()) {
                     const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
                     const hasDefi = defiEnCoursRaw.some((v) => String(v) === String(defiId));
                     setAlreadyAccepted(hasDefi);
                 }
             } catch (e) {
-                console.log("CHECK ACCEPTED ERROR =>", e);
-                setAlreadyAccepted(false);
+                console.log("Error check accepted", e);
             } finally {
                 setCheckingUser(false);
             }
@@ -124,20 +144,20 @@ export default function ChallengeDescription() {
             if (!defiId) return;
             const user = auth.currentUser;
             if (!user) {
-                Alert.alert("Connexion requise", "Tu dois être connecté(e) pour accepter un défi.");
+                Alert.alert("Connexion requise", "Connecte-toi pour accepter un défi.");
                 return;
             }
 
             setAccepting(true);
-            const userRef = doc(db, "Users", user.uid);
+            const userRef = doc(database, "Users", user.uid);
 
-            await runTransaction(db, async (transaction) => {
+            await runTransaction(database, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
 
                 const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
                 if (defiEnCoursRaw.length >= MAX_DEFIS) {
-                    throw new Error(`Tu as déjà ${MAX_DEFIS} défis en cours. Termine-en un avant d'en accepter un autre.`);
+                    throw new Error(`Tu as déjà ${MAX_DEFIS} défis en cours.`);
                 }
 
                 transaction.update(userRef, {
@@ -146,7 +166,7 @@ export default function ChallengeDescription() {
             });
 
             setAlreadyAccepted(true);
-            Alert.alert("Défi accepté ✅", "Le défi a été ajouté à tes défis en cours.");
+            Alert.alert("Défi accepté !", "Le défi a été ajouté à tes défis en cours.");
         } catch (e: any) {
             Alert.alert("Impossible", e?.message ?? "Erreur lors de l'acceptation.");
         } finally {
@@ -162,8 +182,8 @@ export default function ChallengeDescription() {
 
         setAccepting(true);
         try {
-            const userRef = doc(db, "Users", user.uid);
-            await runTransaction(db, async (transaction) => {
+            const userRef = doc(database, "Users", user.uid);
+            await runTransaction(database, async (transaction) => {
                 transaction.update(userRef, {
                     defi_en_cours: arrayRemove(String(defiId)),
                 });
@@ -198,6 +218,11 @@ export default function ChallengeDescription() {
         );
     }
 
+    // Image
+    const imageSource = defi.image && IMAGES_LOCALES[defi.image] 
+        ? IMAGES_LOCALES[defi.image] 
+        : (defi.image?.startsWith('http') ? { uri: defi.image } : null);
+
     return (
         <View style={styles.mainContainer}>
             
@@ -216,8 +241,8 @@ export default function ChallengeDescription() {
                 </View>
 
                 <View style={styles.imageContainer}>
-                    {defi.image ? (
-                        <Image source={{ uri: defi.image }} style={styles.image} />
+                    {imageSource ? (
+                        <Image source={imageSource} style={styles.image} />
                     ) : (
                         <View style={styles.placeholderImage}>
                             <Ionicons name="leaf-outline" size={40} color="#81C784" />
@@ -230,7 +255,7 @@ export default function ChallengeDescription() {
                 {/* BADGE DE RÉCOMPENSE */}
                 <View style={styles.rewardBadge}>
                     <MaterialCommunityIcons name="star-circle" size={24} color="#F57C00" />
-                    <Text style={styles.rewardText}>+{((defi.difficulte ?? 0) * 10)} points à gagner</Text>
+                    <Text style={styles.rewardText}>+{((defi.difficulte ?? 0) * 10)} pts à gagner</Text>
                 </View>
 
                 {/* CHIPS (CATÉGORIES & DIFFICULTÉ) */}
@@ -262,7 +287,7 @@ export default function ChallengeDescription() {
                     <View style={styles.divider} />
 
                     <Text style={styles.sectionTitle}>Pourquoi c'est important ?</Text>
-                    <Text style={styles.descriptionText}>{defi.pourquoi || "Pour protéger notre environnement au quotidien."}</Text>
+                    <Text style={styles.descriptionText}>{defi.pourquoi || "Pour protéger notre planète au quotidien."}</Text>
                 </View>
 
                 <View style={{ height: 120 }} />
@@ -280,7 +305,7 @@ export default function ChallengeDescription() {
                             <Pressable style={styles.cancelButton} onPress={handleCancel} disabled={accepting}>
                                 <Ionicons name="close" size={24} color="#E57373" />
                             </Pressable>
-                            <Pressable style={styles.validateButton} onPress={handleValidate}>
+                            <Pressable style={styles.validateButton} onPress={() => router.push({ pathname: "/(routes)/validationDefi", params: { id: defiId } })}>
                                 <Text style={styles.mainButtonText}>J'ai réussi !</Text>
                             </Pressable>
                         </View>
@@ -299,7 +324,7 @@ const styles = StyleSheet.create({
     backButton: { alignSelf: 'flex-start' },
     headerTitles: { marginBottom: 20 },
     title: { fontSize: 28, fontWeight: '900', color: '#1A1A1A' },
-    imageContainer: { width: "100%", height: 220, borderRadius: 24, marginBottom: 20, overflow: 'hidden', backgroundColor: '#fff', elevation: 3 },
+    imageContainer: { width: "100%", height: 220, borderRadius: 24, marginBottom: 20, overflow: 'hidden', backgroundColor: '#fff' },
     image: { width: "100%", height: "100%", resizeMode: 'cover' },
     placeholderImage: { flex: 1, backgroundColor: "#E8F5E9", justifyContent: 'center', alignItems: 'center' },
     defiName: { fontSize: 24, fontWeight: "800", color: "#1A1A1A", marginBottom: 15 },
@@ -308,7 +333,7 @@ const styles = StyleSheet.create({
     badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 25 },
     badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: "#fff", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: "#EEE" },
     badgeText: { fontWeight: "600", color: "#666", fontSize: 13 },
-    textCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 2 },
+    textCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
     sectionTitle: { fontSize: 18, fontWeight: "800", color: "#1A1A1A", marginBottom: 8 },
     descriptionText: { fontSize: 15, color: "#555", lineHeight: 22 },
     divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 20 },
