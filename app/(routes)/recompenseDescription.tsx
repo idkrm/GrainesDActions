@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { database } from "../firebaseConfig"; // adapte si ton export = db
+import { db } from "../firebaseConfig"; // adapte si ton export = db
 
 interface Recompense {
     nom?: string;
@@ -31,7 +31,7 @@ export default function RewardPreview() {
                     return;
                 }
 
-                const ref = doc(database, "Recompenses", String(rewardId));
+                const ref = doc(db, "Recompenses", String(rewardId));
                 const snap = await getDoc(ref);
 
                 if (!snap.exists()) {

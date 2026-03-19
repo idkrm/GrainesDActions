@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { DefiCard, SearchBar } from "../components/SharedComponents";
-import { database } from "../firebaseConfig";
+import { db } from "../firebaseConfig";
 
 interface Defi {
   id: string;
@@ -42,7 +42,7 @@ export default function ChallengeScreen() {
   useEffect(() => {
     const fetchCategoryNames = async () => {
       try {
-        const snap = await getDocs(collection(database, "Categories"));
+        const snap = await getDocs(collection(db, "Categories"));
         const mapping: Record<number, string> = {};
 
         snap.forEach((docSnap) => {
@@ -56,7 +56,7 @@ export default function ChallengeScreen() {
     };
 
     const unsub = onSnapshot(
-        collection(database, "Defis"),
+        collection(db, "Defis"),
         (snapshot) => {
           const data = snapshot.docs.map((d) => ({
             id: d.id,

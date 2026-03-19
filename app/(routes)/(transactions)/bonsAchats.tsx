@@ -14,7 +14,7 @@ import TransactionCard from '../../components/profile/transactionCard';
 
 // IMPORTS FIREBASE
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { auth, database } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 
 type BonAchat = {
   id: string; 
@@ -47,7 +47,7 @@ export default function VouchersScreen() {
         if (!user) return;
 
         const qRecompensesUser = query(
-          collection(database, "RecompenseUser"),
+          collection(db, "RecompenseUser"),
           where("id_user", "==", user.uid)
         );
 
@@ -70,7 +70,7 @@ export default function VouchersScreen() {
           let montantRecompense; 
 
           if (item.id_recompense) {
-            const recRef = doc(database, "Recompenses", String(item.id_recompense));
+            const recRef = doc(db, "Recompenses", String(item.id_recompense));
             const recSnap = await getDoc(recRef);
             if (recSnap.exists()) {
               const recData = recSnap.data();
@@ -91,7 +91,7 @@ export default function VouchersScreen() {
 
           let nomMagasin = "Magasin";
           if (item.id_magasin) {
-            const magRef = doc(database, "Magasins", String(item.id_magasin));
+            const magRef = doc(db, "Magasins", String(item.id_magasin));
             const magSnap = await getDoc(magRef);
             if (magSnap.exists()) {
               nomMagasin = magSnap.data().nom;

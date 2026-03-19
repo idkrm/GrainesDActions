@@ -13,7 +13,7 @@ import TransactionCard from '../../components/profile/transactionCard';
 
 // IMPORTS FIREBASE
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { auth, database } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 
 type HistoryItem = {
   id: string; // id_achat
@@ -44,7 +44,7 @@ export default function TransactionsScreen() {
 
         // recuperation des docs correspondant à l'utilisateur connecte
         const qRecompensesUser = query(
-          collection(database, "RecompenseUser"),
+          collection(db, "RecompenseUser"),
           where("id_user", "==", user.uid)
         );
 
@@ -71,7 +71,7 @@ export default function TransactionsScreen() {
           let isArbre = false;
 
           if (item.id_recompense) {
-            const recRef = doc(database, "Recompenses", String(item.id_recompense));
+            const recRef = doc(db, "Recompenses", String(item.id_recompense));
             const recSnap = await getDoc(recRef);
             if (recSnap.exists()) {
               const recData = recSnap.data();
@@ -95,7 +95,7 @@ export default function TransactionsScreen() {
 
           if (isDon) {
             if (item.id_asso) {
-              const assoRef = doc(database, "Assos", String(item.id_asso));
+              const assoRef = doc(db, "Assos", String(item.id_asso));
               const assoSnap = await getDoc(assoRef);
               nom = assoSnap.exists() ? assoSnap.data().nom : "Association inconnue";
             } else {
@@ -107,7 +107,7 @@ export default function TransactionsScreen() {
           } 
           else {
             if (item.id_magasin) {
-              const magRef = doc(database, "Magasins", String(item.id_magasin));
+              const magRef = doc(db, "Magasins", String(item.id_magasin));
               const magSnap = await getDoc(magRef);
               nom = magSnap.exists() ? magSnap.data().nom : "Magasin inconnu";
             } else {
