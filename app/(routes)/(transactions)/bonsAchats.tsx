@@ -13,8 +13,6 @@ import {
 } from 'react-native';
 import TransactionCard from '../../components/profile/transactionCard';
 
-// IMPORT DU GÉNÉRATEUR DE CODE-BARRES MOBILE
-
 // IMPORTS FIREBASE
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
@@ -131,7 +129,7 @@ export default function VouchersScreen() {
     );
   }
 
-  // FONCTION POUR GÉNÉRER DES BARRES VISUELLES
+  // --- FONCTION POUR GÉNÉRER DES BARRES ---
   const renderBarcodePattern = (code: string) => {
     return code.split('').map((char, index) => {
       const charCode = char.charCodeAt(0);
