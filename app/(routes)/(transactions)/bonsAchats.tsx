@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   Modal,
   Pressable,
   ScrollView,
@@ -12,22 +13,25 @@ import {
 } from 'react-native';
 import TransactionCard from '../../components/profile/transactionCard';
 
+// IMPORT DU GÉNÉRATEUR DE CODE-BARRES MOBILE
+
 // IMPORTS FIREBASE
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
+
+const { width: screenWidth } = Dimensions.get('window');
 
 type BonAchat = {
   id: string; 
   title: string;
   color: string;
   lines: string[];
-  date_achat: string;
-  codeBarre?: string;
-  magasinImage?: string; // Nouvelle info si on veut afficher l'icône du magasin plus tard
+  date_achat: any;
+  codeBarre: string;
 };
 
 const formaterDate = (timestamp: any) => {
-  if (timestamp.toDate) {
+  if (timestamp && timestamp.toDate) {
     return timestamp.toDate().toLocaleDateString("fr-FR");
   }
   return "Date inconnue";
@@ -59,15 +63,10 @@ export default function VouchersScreen() {
           return;
         }
 
-        const rawRewards = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        const info = await Promise.all(rawRewards.map(async (item: any) => {
-          
+        const info = await Promise.all(snapshot.docs.map(async (rewardDoc) => {
+          const item = rewardDoc.data();
           let nomRecompense = "Récompense";
-          let montantRecompense; 
+          let montantRecompense = item.montant || "0"; 
 
           if (item.id_recompense) {
             const recRef = doc(db, "Recompenses", String(item.id_recompense));
@@ -75,79 +74,46 @@ export default function VouchersScreen() {
             if (recSnap.exists()) {
               const recData = recSnap.data();
               nomRecompense = recData.nom;
-              montantRecompense = item.montant || recData.montant || "0"; 
+              if (!item.montant) montantRecompense = recData.montant || "0"; 
             }
           }
 
-          const lowerName = nomRecompense.toLowerCase();
-          if (lowerName.includes('don') || lowerName.includes('arbre') || item.id_asso) {
-            return null;
-          }
-
-          const aEteUtilise = item.date_utilisation && item.date_utilisation !== "";
-          if (aEteUtilise) {
-            return null;
-          }
+          if (nomRecompense.toLowerCase().includes('don') || nomRecompense.toLowerCase().includes('arbre') || item.id_asso) return null;
+          if (item.date_utilisation && item.date_utilisation !== "") return null;
 
           let nomMagasin = "Magasin";
           if (item.id_magasin) {
             const magRef = doc(db, "Magasins", String(item.id_magasin));
             const magSnap = await getDoc(magRef);
-            if (magSnap.exists()) {
-              nomMagasin = magSnap.data().nom;
-            }
+            if (magSnap.exists()) nomMagasin = magSnap.data().nom;
           }
 
           const dateAchat = formaterDate(item.date_achat);
           let dateExpiration = "Inconnue";
 
-          if (dateAchat && dateAchat.includes('/')) {
+          if (dateAchat.includes('/')) {
             const parts = dateAchat.split('/');
-            if (parts.length === 3) {
-              const jour = parseInt(parts[0], 10);
-              const mois = parseInt(parts[1], 10) - 1; 
-              const annee = parseInt(parts[2], 10);
-
-              const dateObj = new Date(annee, mois, jour);
-              dateObj.setMonth(dateObj.getMonth() + 4);
-
-              const newDay = String(dateObj.getDate()).padStart(2, '0');
-              const newMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
-              const newYear = dateObj.getFullYear();
-
-              dateExpiration = `${newDay}/${newMonth}/${newYear}`;
-            }
+            const dateObj = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            dateObj.setMonth(dateObj.getMonth() + 4);
+            dateExpiration = dateObj.toLocaleDateString("fr-FR");
           }
 
-          const displayLines = [
-            `Valeur : ${montantRecompense} €`,
-            `Obtenu le : ${dateAchat}`,
-            `Expire le : ${dateExpiration}`,
-          ];
-
           return {
-            id: item.id,
+            id: rewardDoc.id,
             title: `Bon d'achat ${nomMagasin}`, 
-            color: '#E0F7FA', // Bleu très clair (Soft UI)
+            color: '#E0F7FA',
             date_achat: item.date_achat,
-            lines: displayLines,
-            codeBarre: `${item.id.substring(0, 8).toUpperCase()}`
+            lines: [`Valeur : ${montantRecompense} €`, `Obtenu le : ${dateAchat}`, `Expire le : ${dateExpiration}`],
+            codeBarre: (item.code_unique || rewardDoc.id.substring(0, 10)).toUpperCase()
           };
         }));
 
         const validItems = info.filter((item) => item !== null) as BonAchat[];
-        
-        // Tri par date décroissante
-        validItems.sort((a, b) => {
-          const dateA = a.date_achat ? (a.date_achat as any).toMillis() : 0;
-          const dateB = b.date_achat ? (b.date_achat as any).toMillis() : 0;
-          return dateB - dateA;
-        });
-
+        validItems.sort((a, b) => (b.date_achat?.toMillis?.() || 0) - (a.date_achat?.toMillis?.() || 0));
         setVouchers(validItems);
 
       } catch (error) {
-        console.error("Erreur récupération bons d'achat:", error);
+        console.error("Erreur:", error);
       } finally {
         setLoading(false);
       }
@@ -165,13 +131,26 @@ export default function VouchersScreen() {
     );
   }
 
+  // FONCTION POUR GÉNÉRER DES BARRES VISUELLES
+  const renderBarcodePattern = (code: string) => {
+    return code.split('').map((char, index) => {
+      const charCode = char.charCodeAt(0);
+      return (
+        <React.Fragment key={index}>
+          <View style={[styles.bar, { width: (charCode % 3) + 1, marginRight: (charCode % 2) + 1 }]} />
+          <View style={[styles.bar, { width: 1, backgroundColor: 'transparent', marginRight: 1 }]} />
+        </React.Fragment>
+      );
+    });
+  };
+
   // --- RENDU FINAL ---
   return (
     <View style={styles.mainContainer}>
       
       {/* HEADER TOP (Bouton retour) */}
       <View style={styles.headerTop}>
-        <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
         </Pressable>
       </View>
@@ -209,13 +188,7 @@ export default function VouchersScreen() {
         )}
       </ScrollView>
 
-      {/* MODAL CODE BARRE */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={!!selectedVoucher} 
-        onRequestClose={() => setSelectedVoucher(null)}
-      >
+      <Modal animationType="fade" transparent={true} visible={!!selectedVoucher} onRequestClose={() => setSelectedVoucher(null)}>
         <Pressable style={styles.modalOverlay} onPress={() => setSelectedVoucher(null)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             
@@ -227,111 +200,94 @@ export default function VouchersScreen() {
                <Ionicons name="barcode-outline" size={40} color="#65B369" />
             </View>
 
-            <Text style={styles.modalTitle}>
-              {selectedVoucher?.title}
-            </Text>
-
-            <Text style={styles.modalInstruction}>
-              Présente ce code à la caisse pour bénéficier de ta réduction.
-            </Text>
+            <Text style={styles.modalTitle}>{selectedVoucher?.title}</Text>
+            <Text style={styles.modalInstruction}>Présente ce code à la caisse pour bénéficier de ta réduction.</Text>
             
             <View style={styles.barcodeBox}>
-              {/* Simulation visuelle de code barre (barres verticales) */}
-              <View style={styles.barcodeLinesContainer}>
-                 {[...Array(15)].map((_, i) => (
-                   <View key={i} style={[
-                     styles.barcodeLine, 
-                     { width: Math.random() > 0.5 ? 2 : 5, opacity: Math.random() > 0.2 ? 1 : 0.5 }
-                   ]} />
-                 ))}
+              {selectedVoucher && (
+                <View style={styles.barcodeContainer}>
+                {selectedVoucher && renderBarcodePattern(selectedVoucher.codeBarre)}
+                {selectedVoucher && renderBarcodePattern(selectedVoucher.id)}
               </View>
-              <Text style={styles.barcodeText}>
-                {selectedVoucher?.codeBarre}
-              </Text>
+              )}
+              <Text style={styles.barcodeText}>{selectedVoucher?.codeBarre}</Text>
             </View>
             
             <View style={styles.modalFooterRow}>
                <Ionicons name="calendar-outline" size={16} color="#666" />
-               <Text style={styles.modalExpiration}>
-                 {selectedVoucher?.lines[2]}
-               </Text>
+               <Text style={styles.modalExpiration}>{selectedVoucher?.lines[2]}</Text>
             </View>
-
           </Pressable>
         </Pressable>
       </Modal>
-
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
+  mainContainer: { 
+    flex: 1, 
     backgroundColor: '#FAFAFA', 
-    paddingTop: 50,
+    paddingTop: 50, 
   },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  center: { 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+  scrollContent: { 
+    paddingHorizontal: 20, 
+    paddingBottom: 40 
   },
 
   // --- HEADER ---
-  headerTop: {
-    paddingHorizontal: 20,
-    marginBottom: 10,
+  headerTop: { 
+    paddingHorizontal: 20, 
+    marginBottom: 10 
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 5,
-    marginLeft: -5,
+  backButton: { 
+    alignSelf: 'flex-start', 
+    padding: 5, 
+    marginLeft: -5 
   },
-  headerTitles: {
-    marginBottom: 35,
+  headerTitles: { 
+    marginBottom: 35 
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#1A1A1A',
+  title: { 
+    fontSize: 28, 
+    fontWeight: '900', 
+    color: '#1A1A1A' 
   },
-  subtitle: {
-    fontSize: 15,
-    color: '#666',
-    marginTop: 4,
+  subtitle: { 
+    fontSize: 15, 
+    color: '#666', 
+    marginTop: 4 
   },
 
   // --- LISTE BONS ---
-  vouchersList: {
-    gap: 15, // Espacement entre les cartes
+  vouchersList: { 
+    gap: 15 // Espacement entre les cartes
   },
-  cardWrapper: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+  cardWrapper: { 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.04, 
+    shadowRadius: 8, 
+    elevation: 2, 
     backgroundColor: 'transparent',
   },
 
   // --- EMPTY STATE ---
-  emptyContainer: {
-    marginTop: 60,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 30,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
+  emptyContainer: { 
+    marginTop: 60, 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    padding: 30, 
+    borderRadius: 20 
   },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+  emptyText: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: '#333' 
   },
   emptySubText: {
     textAlign: 'center',
@@ -341,99 +297,95 @@ const styles = StyleSheet.create({
   },
 
   // --- MODAL CODE BARRE ---
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    padding: 20,
+  modalOverlay: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0,0,0,0.6)', 
+    padding: 20 
   },
-  modalContent: {
-    width: '90%',
+  modalContent: { 
+    width: '90%', 
     backgroundColor: '#fff', 
-    borderRadius: 24,
-    padding: 25,
+    borderRadius: 24, 
+    padding: 25, 
     alignItems: 'center',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 10 
   },
-  closeButton: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    zIndex: 10,
-    padding: 6,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+  closeButton: { 
+    position: 'absolute', 
+    top: 15, 
+    right: 15, 
+    padding: 6, 
+    backgroundColor: '#F5F5F5', 
+    borderRadius: 20 
   },
-  modalIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#E8F5E9',
+  modalIconContainer: { 
+    width: 60, 
+    height: 60, 
+    borderRadius: 30, 
+    backgroundColor: '#E8F5E9', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 15 
+  },
+  modalTitle: { 
+    fontSize: 20, 
+    fontWeight: '800', 
+    color: '#1A1A1A', 
+    marginBottom: 8, 
+    textAlign: 'center' 
+  },
+  modalInstruction: { 
+    fontSize: 14, 
+    color: '#666', 
+    textAlign: 'center', 
+    marginBottom: 25 
+  },
+  barcodeBox: { 
+    padding: 20, 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#eee', 
+    alignItems: 'center', 
+    width: '100%' 
+  },
+  barcodeContainer: { 
+    flexDirection: 'row', 
+    height: 80, 
+    alignItems: 'center', 
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-    marginTop: 10,
+    overflow: 'hidden' 
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 8,
-    textAlign: 'center',
+  bar: { 
+    backgroundColor: '#000', 
+    height: '100%' 
   },
-  modalInstruction: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 25,
-    paddingHorizontal: 10,
+  barcodeText: { 
+    marginTop: 15, 
+    letterSpacing: 4, 
+    fontWeight: 'bold', 
+    fontSize: 18, 
+    color: '#000' 
   },
-  barcodeBox: {
-    width: '100%',
-    backgroundColor: '#F9F9F9',
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EFEFEF',
-    marginBottom: 25,
-  },
-  barcodeLinesContainer: {
-    flexDirection: 'row',
-    height: 60,
-    width: '80%',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  barcodeLine: {
-    backgroundColor: '#000',
-    height: '100%',
-  },
-  barcodeText: {
-    fontSize: 22,
-    letterSpacing: 4,
-    fontWeight: '900',
-    color: '#000',
-  },
-  modalFooterRow: {
+  modalFooterRow: { 
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 12,
+    marginTop: 8
   },
-  modalExpiration: {
-    marginLeft: 6,
-    color: '#555',
-    fontWeight: '600',
-    fontSize: 13,
-  }
+  modalExpiration: { 
+    marginLeft: 6, 
+    color: '#555', 
+    fontWeight: '600', 
+    fontSize: 13 
+  },
 });
