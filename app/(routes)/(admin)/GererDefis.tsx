@@ -14,7 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { database } from "../../firebaseConfig";
+import { db } from "../../firebaseConfig";
 
 interface Defi {
   id: string;
@@ -49,7 +49,7 @@ export default function GestionDefisScreen() {
   // --- CHARGEMENT DES DONNÉES ---
   useEffect(() => {
     const unsub = onSnapshot(
-      collection(database, "Defis"),
+      collection(db, "Defis"),
       (snapshot) => {
         const data = snapshot.docs.map((d) => ({
           id: d.id,
@@ -120,11 +120,11 @@ export default function GestionDefisScreen() {
     try {
       if (editingId) {
         // Mode Modification
-        await updateDoc(doc(database, "Defis", editingId), dataToSave);
+        await updateDoc(doc(db, "Defis", editingId), dataToSave);
         console.log("Défi mis à jour");
       } else {
         // Mode Ajout
-        await addDoc(collection(database, "Defis"), dataToSave);
+        await addDoc(collection(db, "Defis"), dataToSave);
         console.log("Défi ajouté");
       }
       setModalVisible(false);
@@ -146,7 +146,7 @@ export default function GestionDefisScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteDoc(doc(database, "Defis", id));
+              await deleteDoc(doc(db, "Defis", id));
             } catch (error) {
               console.error("Erreur suppression :", error);
             }

@@ -10,7 +10,7 @@ import {
   query,
   where
 } from "firebase/firestore";
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -27,7 +27,7 @@ interface Defi {
   nom?: string;
   co2?: number;
   difficulte?: number;
-  categorie?: number[]; // IDs numériques maintenant
+  categorie?: number[];
 }
 
 type DefiCard = {
@@ -39,7 +39,7 @@ type DefiCard = {
 // --- HELPERS ---
 const mondayStartOfWeek = (date: Date) => {
   const d = new Date(date);
-  const day = (d.getDay() + 6) % 7; 
+  const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
   d.setHours(0, 0, 0, 0);
   return d;
@@ -56,10 +56,7 @@ export default function HomeScreen() {
   const [defisEnCours, setDefisEnCours] = useState<DefiCard[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [pseudo, setPseudo] = useState("Éco-citoyen");
-  
-  // Mapping pour transformer l'ID (int) en Nom (string)
   const [categoryMap, setCategoryMap] = useState<Record<number, string>>({});
-
   const [stats, setStats] = useState({ co2: 0, arbres: 0, dons: 0 });
   const [weekOffset, setWeekOffset] = useState(0);
   const [greenDays, setGreenDays] = useState<Set<string>>(new Set());
@@ -72,7 +69,6 @@ export default function HomeScreen() {
         const mapping: Record<number, string> = {};
         snap.forEach(docSnap => {
           const data = docSnap.data();
-          // On utilise l'ID du document comme clé numérique
           mapping[Number(docSnap.id)] = data.nom;
         });
         setCategoryMap(mapping);
@@ -109,60 +105,85 @@ export default function HomeScreen() {
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
+
     const qWeek = query(
         collection(db, "HistoriqueDefis"),
         where("UserID", "==", user.uid),
         where("State", "==", "Valide")
     );
+
     return onSnapshot(qWeek, (snapshot) => {
       const set = new Set<string>();
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data?.DateValidation) set.add(toKey(data.DateValidation.toDate()));
+        if (data?.DateValidation) {
+          set.add(toKey(data.DateValidation.toDate()));
+        }
       });
       setGreenDays(set);
     });
   }, []);
 
-  // --- 3. CHARGEMENT DÉFIS EN COURS ---
-  const loadDefisEnCours = useCallback(async () => {
-    try {
-      setLoadingDefis(true);
-      const user = auth.currentUser;
-      if (!user) return;
+  // --- 3. DÉFIS EN COURS DYNAMIQUES ---
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
 
-      const userSnap = await getDoc(doc(db, "Users", user.uid));
-      if (!userSnap.exists()) return;
+    setLoadingDefis(true);
 
-      setPseudo(userSnap.data()?.pseudo || "Éco-citoyen");
-      const defiIds = (userSnap.data()?.defi_en_cours ?? []) as string[];
+    const unsubUser = onSnapshot(doc(db, "Users", user.uid), async (userSnap) => {
+      try {
+        if (!userSnap.exists()) {
+          setDefisEnCours([]);
+          setPseudo("Éco-citoyen");
+          setLoadingDefis(false);
+          return;
+        }
 
-      if (defiIds.length === 0) {
-        setDefisEnCours([]);
-        return;
+        const userData = userSnap.data();
+        setPseudo(userData?.pseudo || "Éco-citoyen");
+
+        const defiIds = (userData?.defi_en_cours ?? []) as string[];
+
+        if (!defiIds.length) {
+          setDefisEnCours([]);
+          setLoadingDefis(false);
+          return;
+        }
+
+        const snaps = await Promise.all(
+            defiIds.map((id) => getDoc(doc(db, "Defis", String(id))))
+        );
+
+        const cards: DefiCard[] = snaps
+            .filter((s) => s.exists())
+            .map((s) => {
+              const data = s.data() as Defi;
+              return {
+                id: s.id,
+                nom: data.nom ?? "Défi sans nom",
+                categorieId:
+                    data.categorie && data.categorie.length > 0
+                        ? data.categorie[0]
+                        : null,
+              };
+            });
+
+        setDefisEnCours(cards);
+      } catch (e) {
+        console.log("Erreur chargement défis :", e);
+      } finally {
+        setLoadingDefis(false);
       }
+    });
 
-      const snaps = await Promise.all(
-          defiIds.map((id) => getDoc(doc(db, "Defis", String(id))))
-      );
+    return () => unsubUser();
+  }, []);
 
-      const cards: DefiCard[] = snaps
-          .filter((s) => s.exists())
-          .map((s) => {
-            const data = s.data() as Defi;
-            return {
-              id: s.id,
-              nom: data.nom ?? "Défi sans nom",
-              categorieId: data.categorie && data.categorie.length > 0 ? data.categorie[0] : null,
-            };
-          });
-
-      setDefisEnCours(cards);
-    } catch (e) {
-      console.log("Erreur chargement défis:", e);
-    } finally {
-      setLoadingDefis(false);
-    }
+  // Refresh manuel
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 700);
   }, []);
 
   // --- 4. CALCUL DES STATISTIQUES ---
@@ -170,18 +191,23 @@ export default function HomeScreen() {
     const user = auth.currentUser;
     if (!user) return;
 
-    // CO2
-    const qDefisValides = query(collection(db, "HistoriqueDefis"), where("UserID", "==", user.uid), where("State", "==", "Valide"));
+    const qDefisValides = query(
+        collection(db, "HistoriqueDefis"),
+        where("UserID", "==", user.uid),
+        where("State", "==", "Valide")
+    );
+
     const unsubCo2 = onSnapshot(qDefisValides, async (snapshot) => {
-        let totalCo2 = 0;
-        for (const d of snapshot.docs) {
-            const defiSnap = await getDoc(doc(db, "Defis", String(d.data().DefisID)));
-            if (defiSnap.exists()) totalCo2 += Number(defiSnap.data().co2 || 0);
+      let totalCo2 = 0;
+      for (const d of snapshot.docs) {
+        const defiSnap = await getDoc(doc(db, "Defis", String(d.data().DefisID)));
+        if (defiSnap.exists()) {
+          totalCo2 += Number(defiSnap.data().co2 || 0);
         }
-        setStats(prev => ({ ...prev, co2: Math.round(totalCo2 * 10) / 10 }));
+      }
+      setStats(prev => ({ ...prev, co2: Math.round(totalCo2 * 10) / 10 }));
     });
 
-    // Arbres et Dons
     const qReco = query(collection(db, "RecompenseUser"), where("id_user", "==", user.uid));
     const unsubArbreDon = onSnapshot(qReco, (snapshot) => {
       let totalArbres = 0;
@@ -195,38 +221,33 @@ export default function HomeScreen() {
       setStats(prev => ({ ...prev, arbres: totalArbres, dons: totalDons }));
     });
 
-    return () => { unsubCo2(); unsubArbreDon(); };
+    return () => {
+      unsubCo2();
+      unsubArbreDon();
+    };
   }, []);
-
-  useEffect(() => { loadDefisEnCours(); }, [loadDefisEnCours]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadDefisEnCours();
-    setRefreshing(false);
-  }, [loadDefisEnCours]);
 
   const goToDefi = (defiId: string) => {
     router.push({ pathname: "/(routes)/challengeDescription", params: { id: defiId } });
   };
 
   return (
-      <ScrollView 
-        style={styles.container} 
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      <ScrollView
+          style={styles.container}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* HEADER DE BIENVENUE */}
         <View style={styles.welcomeHeader}>
           <View>
             <Text style={styles.greetingText}>Bonjour,</Text>
             <Text style={styles.pseudoText}>{pseudo} 🌱</Text>
           </View>
           <Pressable onPress={() => router.push('/profile')}>
-            <View style={styles.avatarPlaceholder}><Ionicons name="person" size={24} color="#65B369" /></View>
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={24} color="#65B369" />
+            </View>
           </Pressable>
         </View>
 
-        {/* SECTION 1 : DÉFIS EN COURS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Défis relevés</Text>
 
@@ -238,21 +259,29 @@ export default function HomeScreen() {
                 <Text style={styles.cardTitle}>Prêt à agir ?</Text>
               </View>
           ) : (
-              // ✅ LISTE VERTICALE AU LIEU DU SCROLL HORIZONTAL
               <View style={styles.verticalList}>
                 {defisEnCours.map((d) => {
-                  // On récupère le nom textuel via l'ID
-                  const catName = d.categorieId !== null ? categoryMap[d.categorieId] : "Général";
-                  const config = getCategoryConfig(catName?.toLowerCase() || 'default');
+                  const catName =
+                      d.categorieId !== null ? categoryMap[d.categorieId] : "Général";
+
+                  const config = getCategoryConfig(
+                      typeof catName === "string" ? catName.toLowerCase() : "default"
+                  );
 
                   return (
-                      <Pressable key={d.id} style={styles.defiCardRow} onPress={() => goToDefi(d.id)}>
+                      <Pressable
+                          key={d.id}
+                          style={styles.defiCardRow}
+                          onPress={() => goToDefi(d.id)}
+                      >
                         <View style={[styles.defiCardIcon, { backgroundColor: config.bg }]}>
                           <Ionicons name={config.icon as any} size={22} color={config.color} />
                         </View>
-                        
+
                         <View style={styles.defiCardTexts}>
-                          <Text style={styles.cardTitle} numberOfLines={1}>{d.nom}</Text>
+                          <Text style={styles.cardTitle} numberOfLines={1}>
+                            {d.nom}
+                          </Text>
                           <Text style={styles.tapHint}>{catName || "Défi"}</Text>
                         </View>
 
@@ -264,18 +293,25 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* SECTION 2 : TA SEMAINE */}
         <View style={styles.section}>
           <View style={styles.headerRow}>
             <Text style={styles.sectionTitle}>Ta semaine</Text>
-            <Link href="../history" asChild><Pressable><Text style={styles.linkText}>Voir plus</Text></Pressable></Link>
+            <Link href="../history" asChild>
+              <Pressable>
+                <Text style={styles.linkText}>Voir plus</Text>
+              </Pressable>
+            </Link>
           </View>
 
           <View style={styles.weekCard}>
             <View style={styles.weekHeader}>
-              <Pressable onPress={() => setWeekOffset(w => w - 1)}><Ionicons name="chevron-back" size={24} color="#65B369" /></Pressable>
+              <Pressable onPress={() => setWeekOffset(w => w - 1)}>
+                <Ionicons name="chevron-back" size={24} color="#65B369" />
+              </Pressable>
               <Text style={styles.weekLabel}>{weekLabel}</Text>
-              <Pressable onPress={() => setWeekOffset(w => w + 1)}><Ionicons name="chevron-forward" size={24} color="#65B369" /></Pressable>
+              <Pressable onPress={() => setWeekOffset(w => w + 1)}>
+                <Ionicons name="chevron-forward" size={24} color="#65B369" />
+              </Pressable>
             </View>
 
             <View style={styles.weekContainer}>
@@ -283,19 +319,22 @@ export default function HomeScreen() {
                 const date = weekDates[i];
                 const isGreen = greenDays.has(toKey(date));
                 return (
-                  <View key={i} style={styles.dayColumn}>
-                    <Text style={styles.dayText}>{day}</Text>
-                    <View style={[styles.dayCircle, isGreen && styles.dayCircleGreen]}>
-                      {isGreen ? <Ionicons name="checkmark" size={18} color="#fff" /> : <Text style={styles.dayNumber}>{date.getDate()}</Text>}
+                    <View key={i} style={styles.dayColumn}>
+                      <Text style={styles.dayText}>{day}</Text>
+                      <View style={[styles.dayCircle, isGreen && styles.dayCircleGreen]}>
+                        {isGreen ? (
+                            <Ionicons name="checkmark" size={18} color="#fff" />
+                        ) : (
+                            <Text style={styles.dayNumber}>{date.getDate()}</Text>
+                        )}
+                      </View>
                     </View>
-                  </View>
                 );
               })}
             </View>
           </View>
         </View>
 
-        {/* SECTION 3 : TES STATISTIQUES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ton impact écologique</Text>
           <StatCard value={`${stats.co2} kg`} label="CO2 évités" icon="cloudy-outline" iconColor="#4FC3F7" bgColor="#E1F5FE" />
@@ -308,11 +347,15 @@ export default function HomeScreen() {
   );
 }
 
-// --- NOUVEAU COMPOSANT STATCARD ---
 const StatCard = ({ value, label, icon, iconColor, bgColor }: any) => (
     <View style={styles.statCard}>
-      <View style={[styles.iconWrapper, { backgroundColor: bgColor }]}><Ionicons name={icon} size={28} color={iconColor} /></View>
-      <View style={styles.statTexts}><Text style={styles.statValue}>{value}</Text><Text style={styles.statLabel}>{label}</Text></View>
+      <View style={[styles.iconWrapper, { backgroundColor: bgColor }]}>
+        <Ionicons name={icon} size={28} color={iconColor} />
+      </View>
+      <View style={styles.statTexts}>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
     </View>
 );
 

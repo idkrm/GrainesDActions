@@ -22,7 +22,7 @@ import {
     getDocs,
     runTransaction,
 } from "firebase/firestore";
-import { auth, database } from "../firebaseConfig";
+import { auth, db } from "@/firebaseBD/firebaseConfig";
 
 const IMAGES_LOCALES: Record<string, any> = {
   "covoiturage.png": require("@/assets/images/covoiturage.png"),
@@ -78,7 +78,7 @@ export default function ChallengeDescription() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const snap = await getDocs(collection(database, "Categories"));
+                const snap = await getDocs(collection(db, "Categories"));
                 const mapping: Record<number, string> = {};
                 snap.forEach(docSnap => {
                     mapping[Number(docSnap.id)] = docSnap.data().nom;
@@ -98,7 +98,7 @@ export default function ChallengeDescription() {
                 setLoadingDefi(true);
                 if (!defiId) return;
 
-                const ref = doc(database, "Defis", String(defiId));
+                const ref = doc(db, "Defis", String(defiId));
                 const snap = await getDoc(ref);
 
                 if (snap.exists()) setDefi(snap.data() as Defi);
@@ -122,7 +122,7 @@ export default function ChallengeDescription() {
                 const user = auth.currentUser;
                 if (!user || !defiId) return;
 
-                const userSnap = await getDoc(doc(database, "Users", user.uid));
+                const userSnap = await getDoc(doc(db, "Users", user.uid));
                 if (userSnap.exists()) {
                     const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
                     const hasDefi = defiEnCoursRaw.some((v) => String(v) === String(defiId));
@@ -149,9 +149,9 @@ export default function ChallengeDescription() {
             }
 
             setAccepting(true);
-            const userRef = doc(database, "Users", user.uid);
+            const userRef = doc(db, "Users", user.uid);
 
-            await runTransaction(database, async (transaction) => {
+            await runTransaction(db, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) throw new Error("Utilisateur introuvable.");
 
@@ -182,8 +182,8 @@ export default function ChallengeDescription() {
 
         setAccepting(true);
         try {
-            const userRef = doc(database, "Users", user.uid);
-            await runTransaction(database, async (transaction) => {
+            const userRef = doc(db, "Users", user.uid);
+            await runTransaction(db, async (transaction) => {
                 transaction.update(userRef, {
                     defi_en_cours: arrayRemove(String(defiId)),
                 });

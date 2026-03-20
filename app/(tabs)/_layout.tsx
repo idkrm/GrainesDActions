@@ -94,10 +94,10 @@ export default function RootLayout() {
                     color: '#1A1A1A',
                 },
                 headerLeftContainerStyle: {
-                    paddingLeft: 20,
+                    paddingLeft: 5,
                 },
                 headerRightContainerStyle: {
-                    paddingRight: 20,
+                    paddingRight: 15,
                 },
                 headerRight: () => <PointsBadge />,
                 headerShadowVisible: false,

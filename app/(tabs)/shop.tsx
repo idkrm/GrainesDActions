@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { addDoc, collection, doc, getDoc, increment, onSnapshot, serverTimestamp, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { auth, database } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
 
 // --- INTERFACES ---
 interface MontantDon {
@@ -52,7 +52,7 @@ export default function ShopScreen() {
   // --- RECUPERATION DES DONNEES ---
   useEffect(() => {
     // recompenses
-    const unsubRecompenses = onSnapshot(collection(database, "Recompenses"),
+    const unsubRecompenses = onSnapshot(collection(db, "Recompenses"),
         (snapshot) => {
           const data = snapshot.docs.map((d) => {
             const rawData = d.data();
@@ -72,7 +72,7 @@ export default function ShopScreen() {
     );
 
     // associations
-    const unsubAssos = onSnapshot(collection(database, "Assos"),
+    const unsubAssos = onSnapshot(collection(db, "Assos"),
         (snapshot) => {
           const data = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Association, "id">) }));
           setAssociations(data as Association[]);
@@ -81,7 +81,7 @@ export default function ShopScreen() {
     );
 
     // magasins
-    const unsubMagasins = onSnapshot(collection(database, "Magasins"),
+    const unsubMagasins = onSnapshot(collection(db, "Magasins"),
         (snapshot) => {
           const data = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Magasin, "id">) }));
           setMagasins(data as Magasin[]);
@@ -150,7 +150,7 @@ export default function ShopScreen() {
     }
     const uid = auth.currentUser.uid;
     const coutFinal = (selectedOption ? selectedOption.points : selectedReward?.nb_points) || 0;
-    const userRef = doc(database, "Users", uid);
+    const userRef = doc(db, "Users", uid);
     
     try {
         const userSnap = await getDoc(userRef);
@@ -184,7 +184,7 @@ export default function ShopScreen() {
             dataToSave.montant = selectedOption ? selectedOption.montant : 0;
         }
 
-        await addDoc(collection(database, "RecompenseUser"), dataToSave);
+        await addDoc(collection(db, "RecompenseUser"), dataToSave);
         await updateDoc(userRef, {
             nb_points: increment(-coutFinal)
         });

@@ -16,7 +16,7 @@ import EditModal from '../../components/profile/EditProfileModal';
 // IMPORTS FIREBASE
 import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, database } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -47,7 +47,7 @@ export default function EditProfileScreen() {
         }));
 
         try {
-          const docRef = doc(database, "Users", currentUser.uid);
+          const docRef = doc(db, "Users", currentUser.uid);
           const docSnap = await getDoc(docRef);
 
           if (docSnap.exists()) {
@@ -80,7 +80,7 @@ export default function EditProfileScreen() {
     if (!currentUser || !activeField) return;
 
     try {
-      const userRef = doc(database, "Users", currentUser.uid);
+      const userRef = doc(db, "Users", currentUser.uid);
 
       if (activeField === 'pseudo') {
         await updateDoc(userRef, { pseudo: newValue });
@@ -117,7 +117,7 @@ export default function EditProfileScreen() {
 
     // 2. Envoi à Firebase
     try {
-      const userRef = doc(database, "Users", currentUser.uid);
+      const userRef = doc(db, "Users", currentUser.uid);
       await updateDoc(userRef, {
         is_public: value
       });
