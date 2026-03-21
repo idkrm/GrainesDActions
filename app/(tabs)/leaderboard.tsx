@@ -1,13 +1,21 @@
 import { db } from '@/firebaseBD/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface Users {
-  id?: string;
-  nb_points?: number;
-  pseudo?: string;
+  id: string;
+  nb_points: number;
+  pseudo: string;
+  is_public?: boolean;
 }
 
 export default function LeaderboardScreen() {
@@ -18,133 +26,136 @@ export default function LeaderboardScreen() {
     const usersRef = collection(db, 'Users');
 
     const req = query(
-      usersRef,
-      orderBy("nb_points", "desc"),
-      limit(15)
+        usersRef,
+        where("is_public", "==", true),
+        orderBy("nb_points", "desc"),
+        limit(15)
     );
 
-    const unsub = onSnapshot(req, (snapshot) => {
-      const users = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          pseudo: data.pseudo || "Éco-citoyen",
-          nb_points: data.nb_points || 0 
-        };
-      });
-      setClassement(users as Users[]);
-      setLoading(false);
-    }, (error) => {
-      console.error("Erreur lors du chargement du classement :", error);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+        req,
+        (snapshot) => {
+          const users: Users[] = snapshot.docs.map((docSnap) => {
+            const data = docSnap.data();
+            return {
+              id: docSnap.id,
+              pseudo: data.pseudo || "Éco-citoyen",
+              nb_points: Number(data.nb_points || 0),
+              is_public: data.is_public ?? false,
+            };
+          });
+
+          setClassement(users);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Erreur lors du chargement du classement :", error);
+          setLoading(false);
+        }
+    );
 
     return () => unsub();
   }, []);
 
-  const topThree = classement.slice(0, 3);
+  const first = classement[0];
+  const second = classement[1];
+  const third = classement[2];
   const restOfList = classement.slice(3);
 
   return (
-    <View style={styles.container}>
-      {loading ? (
-        <View style={styles.center}>
-           <ActivityIndicator size="large" color="#65B369" />
-        </View>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          
-          {classement.length > 0 && (
-            <View style={styles.podiumContainer}>
-              {/* RANK 2 */}
-              <PodiumBar 
-                rank={2} 
-                username={topThree[1]?.pseudo}
-                points={topThree[1]?.nb_points} 
-                color="#81C784" 
-                height={120} 
-              />
-
-              {/* RANK 1 */}
-              <PodiumBar 
-                rank={1} 
-                username={topThree[0]?.pseudo}
-                points={topThree[0]?.nb_points} 
-                color="#4FC3F7"
-                height={160} 
-                isFirst
-              />
-
-              {/* RANK 3 */}
-              <PodiumBar 
-                rank={3}
-                username={topThree[2]?.pseudo}
-                points={topThree[2]?.nb_points} 
-                color="#FFD54F"
-                height={90} 
-              />
+      <View style={styles.container}>
+        {loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color="#65B369" />
             </View>
-          )}
+        ) : (
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+              {classement.length > 0 && (
+                  <View style={styles.podiumContainer}>
+                    <PodiumBar
+                        rank={2}
+                        username={second?.pseudo}
+                        points={second?.nb_points}
+                        color="#81C784"
+                        height={120}
+                    />
 
-          {/* 3. LA LISTE (Reste du classement) */}
-          <View style={styles.listContainer}>
-            {restOfList.map((item, index) => (
-              <View key={item.id} style={styles.listItemCard}>
-                
-                <View style={styles.rankCircle}>
-                  <Text style={styles.rankText}>{index + 4}</Text>
-                </View>
+                    <PodiumBar
+                        rank={1}
+                        username={first?.pseudo}
+                        points={first?.nb_points}
+                        color="#4FC3F7"
+                        height={160}
+                        isFirst
+                    />
 
-                <Text style={styles.listPseudo} numberOfLines={1}>{item.pseudo}</Text>
-                
-                <View style={styles.pointsBadge}>
-                  <Ionicons name="star" size={12} color="#F57C00" style={{marginRight: 4}} />
-                  <Text style={styles.pointsText}>{item.nb_points} pts</Text>
-                </View>
+                    <PodiumBar
+                        rank={3}
+                        username={third?.pseudo}
+                        points={third?.nb_points}
+                        color="#FFD54F"
+                        height={90}
+                    />
+                  </View>
+              )}
 
+              <View style={styles.listContainer}>
+                {restOfList.map((item, index) => (
+                    <View key={item.id} style={styles.listItemCard}>
+                      <View style={styles.rankCircle}>
+                        <Text style={styles.rankText}>{index + 4}</Text>
+                      </View>
+
+                      <Text style={styles.listPseudo} numberOfLines={1}>
+                        {item.pseudo}
+                      </Text>
+
+                      <View style={styles.pointsBadge}>
+                        <Ionicons name="star" size={12} color="#F57C00" style={{ marginRight: 4 }} />
+                        <Text style={styles.pointsText}>{item.nb_points} pts</Text>
+                      </View>
+                    </View>
+                ))}
+
+                {classement.length === 0 && (
+                    <Text style={styles.emptyText}>
+                      Aucun utilisateur public classé pour le moment.
+                    </Text>
+                )}
               </View>
-            ))}
-
-            {classement.length === 0 && (
-               <Text style={styles.emptyText}>Aucun utilisateur classé pour le moment.</Text>
-            )}
-            
-            {restOfList.length === 0 && classement.length > 0 && (
-               <Text style={styles.emptyText}>C'est tout pour le moment !</Text>
-            )}
-          </View>
-
-        </ScrollView>
-      )}
-    </View>
+            </ScrollView>
+        )}
+      </View>
   );
 }
 
-// Composant PodiumBar
 const PodiumBar = ({ rank, points, color, height, username, isFirst }: any) => {
-  if (!username) return <View style={{ width: 90 }} />; 
+  if (!username) {
+    return <View style={{ width: 90 }} />;
+  }
 
   return (
-    <View style={styles.barWrapper}>
-      {/* Couronne pour le 1er */}
-      {isFirst && <Ionicons name="crown" size={32} color="#FFD700" style={styles.crown} />}
-      
-      {/* Avatar */}
-      <View style={[styles.avatar, { borderColor: color }]}>
-        <Ionicons name="person" size={24} color={color} />
-      </View>
+      <View style={styles.barWrapper}>
+        {isFirst && (
+            <Ionicons name="crown" size={32} color="#FFD700" style={styles.crown} />
+        )}
 
-      {/* Barre */}
-      <View style={[styles.bar, { backgroundColor: color, height: height }]}>
-        <Text style={styles.barRank}>{rank}</Text>
-      </View>
+        <View style={[styles.avatar, { borderColor: color }]}>
+          <Ionicons name="person" size={24} color={color} />
+        </View>
 
-      {/* Infos joueur */}
-      <Text style={styles.podiumPseudo} numberOfLines={1}>{username}</Text>
-      <View style={styles.podiumPointsBadge}>
-        <Text style={styles.podiumPointsText}>{points || 0} pts</Text>
+        <View style={[styles.bar, { backgroundColor: color, height }]}>
+          <Text style={styles.barRank}>{rank}</Text>
+        </View>
+
+        <Text style={styles.podiumPseudo} numberOfLines={1}>
+          {username}
+        </Text>
+
+        <View style={styles.podiumPointsBadge}>
+          <Text style={styles.podiumPointsText}>{points || 0} pts</Text>
+        </View>
       </View>
-    </View>
   );
 };
 
@@ -162,29 +173,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100,
   },
-
-  // --- HEADER ---
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 30, 
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#1A1A1A',
-  },
-  subtitle: {
-    fontSize: 15,
-    color: '#666',
-    marginTop: 4,
-  },
-
-  // --- PODIUM ---
   podiumContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'flex-end', 
-    gap: 12, 
+    alignItems: 'flex-end',
+    gap: 12,
     marginBottom: 40,
     paddingHorizontal: 20,
   },
@@ -209,11 +202,11 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: -15, 
+    marginBottom: -15,
     zIndex: 2,
   },
   bar: {
-    width: '100%', 
+    width: '100%',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     justifyContent: 'center',
@@ -229,7 +222,7 @@ const styles = StyleSheet.create({
   barRank: {
     fontSize: 32,
     fontWeight: '900',
-    color: 'rgba(255,255,255,0.7)', 
+    color: 'rgba(255,255,255,0.7)',
   },
   podiumPseudo: {
     fontSize: 14,
@@ -248,8 +241,6 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: 'bold',
   },
-
-  // --- LISTE ---
   listContainer: {
     paddingHorizontal: 20,
   },
@@ -304,6 +295,6 @@ const styles = StyleSheet.create({
     color: "#888",
     fontSize: 14,
     marginTop: 20,
-    fontStyle: 'italic'
+    fontStyle: 'italic',
   },
 });
