@@ -7,7 +7,7 @@ export const RediNotification = () => {
     useEffect(() => {
         // Redirection lorsque l'utilisateur clique sur la notification
         const click = Notifications.addNotificationResponseReceivedListener(response => {
-            const { screen } = response.notification.request.content.data;
+            const { screen } = response?.notification?.request?.content?.data;
 
             if(screen === "index") {
                 router.push("/(tabs)/challenge")

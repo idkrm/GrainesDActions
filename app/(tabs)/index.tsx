@@ -21,6 +21,7 @@ import {
   View
 } from 'react-native';
 import { getCategoryConfig } from '../components/SharedComponents';
+import { envoyerNotification } from '../components/notifications/GetNotification';
 
 // --- INTERFACES ---
 interface Defi {
@@ -147,6 +148,7 @@ export default function HomeScreen() {
 
         if (!defiIds.length) {
           setDefisEnCours([]);
+          envoyerNotification();
           setLoadingDefis(false);
           return;
         }
@@ -170,6 +172,11 @@ export default function HomeScreen() {
             });
 
         setDefisEnCours(cards);
+
+        if(cards.length === 0){
+          envoyerNotification();
+        }
+
       } catch (e) {
         console.log("Erreur chargement défis :", e);
       } finally {

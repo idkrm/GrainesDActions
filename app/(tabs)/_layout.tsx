@@ -12,7 +12,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { doc, onSnapshot } from "firebase/firestore";
 
-import { RediNotification } from '../components/notifications/RedirectNotification';
+//import { RediNotification } from '../components/notifications/RedirectNotification';
 import * as Notifications from 'expo-notifications';
 
 
@@ -85,9 +85,6 @@ Notifications.setNotificationHandler({
 export default function RootLayout() {
     
     return (
-        <>
-        <RediNotification />
-
         <Tabs
             screenOptions={{
                 // --- BARRE DE NAVIGATION (BOTTOM TAB) ---
@@ -168,8 +165,6 @@ export default function RootLayout() {
                 }}
             />
         </Tabs>
-        
-        </>
     );
 }
 

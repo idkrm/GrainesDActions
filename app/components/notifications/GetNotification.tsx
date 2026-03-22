@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
 
-export const nvoyerNotification = async () => {
+export const envoyerNotification = async () => {
     // Attendre que l'utilisateur donne la permission
     const { status } = await Notifications.requestPermissionsAsync();
 
@@ -17,7 +17,10 @@ export const nvoyerNotification = async () => {
             body: "Contribuez à la planète en participant aux défis 🌱",
             data: { screen: 'index'}
         },
-        trigger: { seconds: 500, } as Notifications.NotificationTriggerInput,
+        trigger: { 
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: 60, 
+        },
     })
 
 }
