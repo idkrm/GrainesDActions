@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, Alert } from 'react-native';
 
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -11,6 +11,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { doc, onSnapshot } from "firebase/firestore";
+
+import { RediNotification } from '../components/notifications/RedirectNotification';
+import { router, useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+
 
 // fonction pour afficher le nombre de points
 const PointsBadge = () => {
@@ -66,8 +71,24 @@ const TabIcon = ({ focused, IconComponent, iconName }: any) => {
     );
 };
 
+// -- Configuration Notification --
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true, // Affiche la notif
+    shouldPlaySound: false, 
+    shouldSetBadge: true, // Affiche l'icône au dessus de l'app
+    shouldShowBanner: true, // Affiche la notif en haut de l'écran
+    shouldShowList: false, 
+  }),
+});
+
 export default function RootLayout() {
+    
     return (
+        <>
+        <RediNotification />
+
         <Tabs
             screenOptions={{
                 // --- BARRE DE NAVIGATION (BOTTOM TAB) ---
@@ -107,6 +128,7 @@ export default function RootLayout() {
                 }
             }}
         >
+            
             <Tabs.Screen
                 name="index"
                 options={{
@@ -147,6 +169,8 @@ export default function RootLayout() {
                 }}
             />
         </Tabs>
+        
+        </>
     );
 }
 
