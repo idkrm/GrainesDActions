@@ -230,6 +230,31 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
+        {/* SECTION NOTIFICATIONS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+        <View style={styles.card}>
+          <View style={[styles.fieldRow, { borderBottomWidth: 0 }]}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#fffbaf' }]}>
+                <Ionicons name="notifications-outline" size={20} color="#9a9818" />
+              </View>
+              
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Activer les notifications</Text>
+                <Text style={styles.switchDescription}>Recevoir des rappels de défis quotidiennements</Text>
+              </View>
+
+              <Switch
+                trackColor={{ false: "#E0E0E0", true: "#65B369" }}
+                thumbColor={"#fff"}
+                ios_backgroundColor="#E0E0E0"
+                onValueChange={toggleSwitch}
+                value={publicEnabled}
+              />
+            </View>
+          </View>
+        </View>
+
       </ScrollView>
 
       {/* MODAL EXISTANT */}
