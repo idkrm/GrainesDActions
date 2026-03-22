@@ -13,7 +13,6 @@ import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { doc, onSnapshot } from "firebase/firestore";
 
 import { RediNotification } from '../components/notifications/RedirectNotification';
-import { router, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 
 
