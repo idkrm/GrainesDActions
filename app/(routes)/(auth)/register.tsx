@@ -130,7 +130,7 @@ export default function RegisterScreen() {
         await deleteUser(cred.user);
         throw e;
       }
-
+        //zz
       await signOut(auth);
       router.replace("/login");
     } catch (error: any) {
