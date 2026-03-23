@@ -73,6 +73,7 @@ export default function ChallengeDescription() {
     const [checkingUser, setCheckingUser] = useState(true);
     const [alreadyAccepted, setAlreadyAccepted] = useState(false);
     const [accepting, setAccepting] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     // 1) Charger les noms des catégories pour l'affichage des badges
     useEffect(() => {
@@ -124,6 +125,10 @@ export default function ChallengeDescription() {
 
                 const userSnap = await getDoc(doc(db, "Users", user.uid));
                 if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    if (userData?.admin === true) {
+                        setIsAdmin(true);
+                    }
                     const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
                     const hasDefi = defiEnCoursRaw.some((v) => String(v) === String(defiId));
                     setAlreadyAccepted(hasDefi);
@@ -296,7 +301,13 @@ export default function ChallengeDescription() {
             {/* FOOTER ACTIONS FLOATING */}
             {!checkingUser && (
                 <View style={styles.footerContainer}>
-                    {!alreadyAccepted ? (
+                    {isAdmin ? (
+                        <View style={[styles.mainButton, { backgroundColor: '#E0E0E0', shadowOpacity: 0 }]}>
+                             <Text style={[styles.mainButtonText, { color: '#888' }]}>
+                                Relever le défi
+                             </Text>
+                        </View>
+                    ) : !alreadyAccepted ? (
                         <Pressable style={styles.mainButton} onPress={handleAccept} disabled={accepting}>
                             {accepting ? <ActivityIndicator color="#fff" /> : <Text style={styles.mainButtonText}>Relever le défi</Text>}
                         </Pressable>
