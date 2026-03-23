@@ -10,7 +10,7 @@ import {
   query,
   where
 } from "firebase/firestore";
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -74,7 +74,7 @@ export default function HomeScreen() {
         });
         setCategoryMap(mapping);
       } catch (e) {
-        console.error("Erreur mapping catégories:", e);
+        // console.error("Erreur mapping catégories:", e);
       }
     };
     fetchCategoryNames();
