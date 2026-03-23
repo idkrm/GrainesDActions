@@ -152,7 +152,7 @@ export default function HomeScreen() {
           const currentUser = auth.currentUser;
           if (!currentUser) return;
 
-          await Notifications.cancelAllScheduledNotificationsAsync;
+          await Notifications.cancelAllScheduledNotificationsAsync();
 
           const userRef = doc(db, "Users", currentUser.uid);
           await updateDoc(userRef, { notifications_enabled: false });
