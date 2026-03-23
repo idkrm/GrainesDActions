@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -10,7 +11,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 
 import { db } from "@/firebaseBD/firebaseConfig";
@@ -26,11 +27,10 @@ import {
 } from "firebase/firestore";
 
 interface ValidationItem {
-  id: string;                // id du doc HistoriqueDefis
-  defiId: string;            // DefisID
-  userId: string;            // UserID
-  points: number;            // points à ajouter
-
+  id: string;                
+  defiId: string;            
+  userId: string;            
+  points: number;            
   defiNom: string;
   username: string;
   dateSoumission: string;
@@ -63,7 +63,6 @@ export default function ValidationDefisScreen() {
           const userId = String(data?.UserID ?? "");
           const ts: Timestamp | undefined = data?.DateValidation;
 
-          // 🔹 Récupérer le défi (nom + points)
           let defiNom = "Défi inconnu";
           let points = 0;
 
@@ -73,13 +72,11 @@ export default function ValidationDefisScreen() {
               const defiData = defiSnap.data() as any;
               defiNom = defiData?.nom ?? "Défi sans nom";
 
-              // ✅ points calculés à partir de la difficulté (comme dans ton écran défi)
               const difficulte = Number(defiData?.difficulte ?? 0);
               points = Math.max(0, difficulte) * 10;
             }
           }
 
-          // 🔹 Récupérer le pseudo utilisateur
           let username = "Utilisateur";
           if (userId) {
             const userSnap = await getDoc(doc(db, "Users", userId));
@@ -136,7 +133,6 @@ export default function ValidationDefisScreen() {
         const histoSnap = await transaction.get(histoRef);
         if (!histoSnap.exists()) throw new Error("Historique introuvable.");
 
-        // ⚠️ sécurité : si déjà validé / refusé, on ne refait pas l'opération
         const currentState = String(histoSnap.data()?.State ?? "");
         if (currentState !== "En cours") {
           throw new Error("Ce défi n'est plus en attente (déjà traité).");
@@ -148,21 +144,15 @@ export default function ValidationDefisScreen() {
         const currentPoints = Number(userSnap.data()?.nb_points ?? 0);
         const add = Number(selectedItem.points ?? 0);
 
-        // 1) passer l'historique en "Valide"
         transaction.update(histoRef, { State: "Valide" });
-
-        // 2) ajouter les points à l'utilisateur
         transaction.update(userRef, { nb_points: currentPoints + add });
       });
 
-      Alert.alert("Succès", `Défi validé ! +${selectedItem.points} points`);
+      Alert.alert("Succès", `Défi validé ! +${selectedItem.points} points pour ${selectedItem.username}`);
       setSelectedItem(null);
     } catch (e: any) {
       console.log("VALIDATE ERROR =>", e);
-      Alert.alert(
-          "Erreur",
-          `${e?.code ?? "unknown"}\n${e?.message ?? "Impossible de valider le défi."}`
-      );
+      Alert.alert("Erreur", "Impossible de valider le défi.");
     }
   };
 
@@ -189,31 +179,34 @@ export default function ValidationDefisScreen() {
       setSelectedItem(null);
     } catch (e: any) {
       console.log("REJECT ERROR =>", e);
-      Alert.alert(
-          "Erreur",
-          `${e?.code ?? "unknown"}\n${e?.message ?? "Impossible de refuser le défi."}`
-      );
+      Alert.alert("Erreur", "Impossible de refuser le défi.");
     }
   };
 
   const renderItem = ({ item }: { item: ValidationItem }) => (
-      <View style={styles.listItem}>
+      <Pressable style={styles.listItem} onPress={() => setSelectedItem(item)}>
+        
+        {/* Avatar Icon */}
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarText}>{item.username.charAt(0).toUpperCase()}</Text>
+        </View>
+
         <View style={styles.itemInfo}>
-          <Text style={styles.itemTitle} numberOfLines={1}>
-            {item.defiNom}
-          </Text>
+          <Text style={styles.itemTitle} numberOfLines={1}>{item.defiNom}</Text>
           <Text style={styles.itemSubtitle}>
-            par {item.username} le {item.dateSoumission} • +{item.points} pts
+            par <Text style={{fontWeight: '700', color: '#555'}}>{item.username}</Text>
           </Text>
         </View>
 
-        <Pressable
-            style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.5 }]}
-            onPress={() => setSelectedItem(item)}
-        >
-          <Ionicons name="eye-outline" size={26} color="#333" />
-        </Pressable>
-      </View>
+        {/* Info Right */}
+        <View style={styles.itemRight}>
+           <Text style={styles.dateText}>{item.dateSoumission}</Text>
+           <View style={styles.pointsBadge}>
+              <Text style={styles.pointsText}>+{item.points}</Text>
+           </View>
+        </View>
+
+      </Pressable>
   );
 
   return (
@@ -223,22 +216,23 @@ export default function ValidationDefisScreen() {
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="black" />
           </Pressable>
-          <Text style={styles.headerTitle}>Validation de défi</Text>
+          
         </View>
 
         {/* BARRE DE RECHERCHE */}
+        <Text style={styles.headerTitle}>Validation</Text>
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
             <TextInput
-                placeholder="Rechercher un défi ou utilisateur..."
+                placeholder="Rechercher un utilisateur ou un défi..."
                 style={styles.searchInput}
                 value={searchText}
                 onChangeText={setSearchText}
                 placeholderTextColor="#888"
             />
             {searchText.length > 0 && (
-                <Pressable onPress={() => setSearchText("")}>
+                <Pressable onPress={() => setSearchText("")} hitSlop={10}>
                   <Ionicons name="close-circle" size={18} color="#888" />
                 </Pressable>
             )}
@@ -248,21 +242,26 @@ export default function ValidationDefisScreen() {
         {/* LISTE */}
         {chargement ? (
             <View style={styles.center}>
-              <Text>Chargement...</Text>
+              <ActivityIndicator size="large" color="#65B369" />
             </View>
         ) : (
             <FlatList
                 data={filteredValidations}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
                 renderItem={renderItem}
                 ListEmptyComponent={
-                  <Text style={styles.emptyText}>Aucun défi en attente de validation.</Text>
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="checkmark-done-circle-outline" size={50} color="#C8E6C9" style={{marginBottom: 10}}/>
+                    <Text style={styles.emptyText}>Aucun défi en attente de validation.</Text>
+                    <Text style={styles.emptySubText}>Vous êtes à jour !</Text>
+                  </View>
                 }
             />
         )}
 
-        {/* MODAL */}
+        {/* MODAL DE VALIDATION */}
         <Modal
             animationType="fade"
             transparent
@@ -271,39 +270,52 @@ export default function ValidationDefisScreen() {
         >
           <Pressable style={styles.modalOverlay} onPress={() => setSelectedItem(null)}>
             <Pressable style={styles.modalContent} onPress={() => {}}>
-              <Pressable style={styles.closeButton} onPress={() => setSelectedItem(null)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </Pressable>
+              
+              {/* Header Modal */}
+              <View style={styles.modalHeader}>
+                 <Text style={styles.modalTitle} numberOfLines={1}>{selectedItem?.defiNom}</Text>
+                 <Pressable style={styles.closeButton} onPress={() => setSelectedItem(null)} hitSlop={10}>
+                    <Ionicons name="close" size={24} color="#555" />
+                 </Pressable>
+              </View>
 
-              <Text style={styles.modalTitle}>{selectedItem?.defiNom}</Text>
-              <Text style={styles.modalSubtitle}>
-                par <Text style={{ fontWeight: "bold" }}>{selectedItem?.username}</Text> le{" "}
-                <Text style={{ fontWeight: "bold" }}>{selectedItem?.dateSoumission}</Text>
-                {"  "}•{"  "}
-                <Text style={{ fontWeight: "bold" }}>+{selectedItem?.points} pts</Text>
-              </Text>
+              {/* Info Modal */}
+              <View style={styles.modalInfoRow}>
+                 <View style={styles.modalUserBox}>
+                    <Ionicons name="person-outline" size={16} color="#666" style={{marginRight: 6}} />
+                    <Text style={styles.modalSubtitle}>{selectedItem?.username}</Text>
+                 </View>
+                 <View style={styles.modalPointsBox}>
+                    <Ionicons name="star" size={14} color="#F57C00" style={{marginRight: 4}} />
+                    <Text style={styles.modalPointsText}>+{selectedItem?.points} pts</Text>
+                 </View>
+              </View>
 
-              {/* --- IMAGE SÉLECTIONNÉE --- */}
+              {/* IMAGE SÉLECTIONNÉE */}
               <View style={styles.modalImageContainer}>
                 {selectedItem?.imageUri ? (
                   <Image source={{ uri: selectedItem.imageUri }} style={styles.modalImage} resizeMode="cover" />
                 ) : (
-                  <View style={[styles.modalImage, styles.placeholderImage]}>
-                    <Ionicons name="image-outline" size={40} color="#aaa" />
-                    <Text style={{color: '#aaa', marginTop: 10}}>Aucune image</Text>
+                  <View style={styles.placeholderImage}>
+                    <Ionicons name="document-text-outline" size={50} color="#aaa" />
+                    <Text style={{color: '#888', marginTop: 10, fontWeight: '500'}}>Preuve documentaire (PDF)</Text>
                   </View>
                 )}
               </View>
 
+              {/* BOUTONS ACTIONS */}
               <View style={styles.actionButtonsRow}>
-                <Pressable style={[styles.actionButton, styles.buttonValidate]} onPress={handleValidate}>
-                  <Text style={styles.buttonText}>Valider le défi</Text>
+                <Pressable style={[styles.actionButton, styles.buttonReject]} onPress={handleReject}>
+                  <Ionicons name="close-circle-outline" size={20} color="#E53935" style={{marginRight: 6}} />
+                  <Text style={styles.buttonRejectText}>Refuser</Text>
                 </Pressable>
 
-                <Pressable style={[styles.actionButton, styles.buttonReject]} onPress={handleReject}>
-                  <Text style={styles.buttonText}>Refuser</Text>
+                <Pressable style={[styles.actionButton, styles.buttonValidate]} onPress={handleValidate}>
+                  <Text style={styles.buttonValidateText}>Valider</Text>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={{marginLeft: 6}} />
                 </Pressable>
               </View>
+
             </Pressable>
           </Pressable>
         </Modal>
@@ -314,8 +326,8 @@ export default function ValidationDefisScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 70,
+    backgroundColor: "#FAFAFA", // Fond Soft UI
+    paddingTop: 50,
   },
   center: {
     flex: 1,
@@ -332,23 +344,30 @@ const styles = StyleSheet.create({
   },
   backButton: { marginRight: 15 },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: 26,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    fontWeight: "900",
+    color: "#1A1A1A",
   },
 
   // --- BARRE DE RECHERCHE ---
   searchContainer: {
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderRadius: 16,
     paddingHorizontal: 15,
-    height: 48,
+    height: 50,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
@@ -364,44 +383,84 @@ const styles = StyleSheet.create({
   listItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FAFAFA",
-    borderWidth: 1,
-    borderColor: "#EFEFEF",
+    backgroundColor: "#fff",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#2E7D32',
   },
   itemInfo: {
     flex: 1,
-    paddingRight: 15,
+    paddingRight: 10,
   },
   itemTitle: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "700",
+    color: "#1A1A1A",
     marginBottom: 4,
   },
   itemSubtitle: {
     fontSize: 13,
-    color: "#666",
+    color: "#888",
   },
-  iconButton: {
-    padding: 8,
-    backgroundColor: "#fff",
-    borderRadius: 10,
+  itemRight: {
+    alignItems: 'flex-end',
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#aaa',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  pointsBadge: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  pointsText: {
+    color: '#E65100',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  
+  // --- EMPTY STATE ---
+  emptyContainer: {
+    marginTop: 60,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#eee",
-    elevation: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    borderColor: '#EFEFEF',
   },
   emptyText: {
-    marginTop: 30,
-    textAlign: "center",
-    color: "#888",
-    fontStyle: "italic",
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
+  },
+  emptySubText: {
+    color: '#888',
+    fontSize: 14,
   },
 
   // --- MODAL ---
@@ -409,40 +468,89 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    padding: 20,
   },
   modalContent: {
-    width: "85%",
+    width: "100%",
     backgroundColor: "white",
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 25,
-    paddingTop: 35,
-    alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  closeButton: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    zIndex: 10,
-    padding: 5,
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 4,
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#1A1A1A",
+    marginRight: 10,
+  },
+  closeButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    padding: 6,
+  },
+  modalInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    backgroundColor: '#FAFAFA',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  modalUserBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   modalSubtitle: {
     fontSize: 14,
     color: "#555",
-    marginBottom: 20,
-    textAlign: "center",
+    fontWeight: '600',
+  },
+  modalPointsBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  modalPointsText: {
+    color: '#E65100',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  modalImageContainer: {
+    width: '100%',
+    aspectRatio: 1, 
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 25,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  modalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Boutons du modal
@@ -454,36 +562,33 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonValidate: {
-    backgroundColor: "#81C784",
+    backgroundColor: "#65B369",
+    shadowColor: "#65B369",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonReject: {
-    backgroundColor: "#E57373",
+    backgroundColor: "#FFEBEE",
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
   },
-  buttonText: {
+  buttonValidateText: {
     color: "white",
-    fontSize: 15,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "800",
   },
-  modalImageContainer: {
-    width: '100%',
-    aspectRatio: 1, 
-    borderRadius: 15,
-    overflow: 'hidden',
-    marginBottom: 25,
-  },
-  modalImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
+  buttonRejectText: {
+    color: "#D32F2F",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

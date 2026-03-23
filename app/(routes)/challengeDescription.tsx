@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 // CORRECTION DE L'IMPORT : On utilise le même fichier pour auth et database
+import { auth, db } from "@/firebaseBD/firebaseConfig";
 import {
     arrayRemove,
     arrayUnion,
@@ -22,7 +23,6 @@ import {
     getDocs,
     runTransaction,
 } from "firebase/firestore";
-import { auth, db } from "@/firebaseBD/firebaseConfig";
 
 const IMAGES_LOCALES: Record<string, any> = {
   "covoiturage.png": require("@/assets/images/covoiturage.png"),
@@ -85,7 +85,7 @@ export default function ChallengeDescription() {
                 });
                 setCategoryMap(mapping);
             } catch (e) {
-                console.error("Erreur catégories :", e);
+                // console.error("Erreur catégories :", e);
             }
         };
         fetchCategories();
