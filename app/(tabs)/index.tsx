@@ -256,7 +256,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Défis relevés</Text>
+          <Text style={styles.sectionTitle}>Défis relevés ({defisEnCours.length} / 3)</Text>
 
           {loadingDefis ? (
               <ActivityIndicator color="#65B369" size="large" />
