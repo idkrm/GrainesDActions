@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +9,8 @@ import {
   StyleSheet,
   Switch,
   Text,
-  View
+  View,
+  Linking
 } from 'react-native';
 import EditModal from '../../components/profile/EditProfileModal';
 
@@ -18,6 +19,9 @@ import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
 
+import * as Notifications from "expo-notifications";
+
+
 export default function EditProfileScreen() {
   const router = useRouter();
 
@@ -25,6 +29,7 @@ export default function EditProfileScreen() {
   
   // États des switchs
   const [publicEnabled, setPublicEnabled] = useState(true);
+  const [notifEnabled, setNotifEnabled] = useState(false);
 
   // Données utilisateur
   const [userData, setUserData] = useState({
@@ -128,6 +133,79 @@ export default function EditProfileScreen() {
       Alert.alert("Erreur", "Impossible de sauvegarder vos préférences.");
     }
   };
+
+  // --- ACTIVATION DES NOTIFICATIONS ---
+  useEffect(() => {
+    const checkPermission = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, "Users", currentUser.uid));
+        if(userDoc.exists()){
+          const data = userDoc.data();
+          // on met le switch dans l'état enregistré (soit true soit false)
+          setNotifEnabled(data.notifications_enabled || false);
+        }
+
+      const { status } = await Notifications.getPermissionsAsync();
+        if (status !== 'granted') {
+          // Si l'utilisateur a coupé les notifs dans les réglages
+          setNotifEnabled(false);
+        }
+      } catch(e) {
+        console.error("Erreur :", e);
+      }
+    }
+    checkPermission();
+  }, [])
+
+  const activateSwitch = async (value: boolean) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    setNotifEnabled(value);
+
+    try {
+      // Si le switch est désactivé alors ...
+      if(value){
+        const { status : statusActuel } = await Notifications.getPermissionsAsync();
+        let finalStatus = statusActuel;
+
+        if(statusActuel !== "granted"){
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status
+        }
+
+        if(finalStatus === "granted") {
+          const userRef = doc(db, "Users", currentUser.uid);
+          await updateDoc(userRef, { notifications_enabled: true });
+          Alert.alert("Activé", "Les notifications sont activées 🔔")
+
+        } else {
+          Alert.alert(
+            "Les permissions sont requises",
+            "Veuillez activer les notifications dans les réglages pour en recevoir 🔔",
+            [
+              {text: "Annuler", style: "cancel"},
+              {text: "Ouvrir les réglages", onPress: () => Linking.openSettings()}
+            ]
+          )
+        }
+      } else {
+        const userRef = doc(db, "Users", currentUser.uid);
+        await updateDoc(userRef, { notifications_enabled: false });
+        // Vider la mémoire de la prochaine alerte déjà programmée
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        Alert.alert("Désactivé", "Les notifications sont désactivées, vous ne recevrez plus de rappel à partir de maintenant 🔔")
+        console.log("Notifications stoppées...")
+      }
+    } catch (error) {
+      console.error(error);
+      setNotifEnabled(!value); // Retour en arrière en cas de bug réseau
+      Alert.alert("Erreur", "Impossible de mettre à jour vos préférences.");
+    }
+  } 
 
   if (loading) {
     return (
@@ -248,8 +326,8 @@ export default function EditProfileScreen() {
                 trackColor={{ false: "#E0E0E0", true: "#65B369" }}
                 thumbColor={"#fff"}
                 ios_backgroundColor="#E0E0E0"
-                onValueChange={toggleSwitch}
-                value={publicEnabled}
+                onValueChange={activateSwitch}
+                value={notifEnabled}
               />
             </View>
           </View>

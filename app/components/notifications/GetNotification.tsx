@@ -3,12 +3,14 @@ import { Alert, Platform } from 'react-native';
 
 export const envoyerNotification = async () => {
     // Attendre que l'utilisateur donne la permission
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications.getPermissionsAsync();
 
     if (status !== 'granted') {
         Alert.alert("Les permission des notifications ont été désactivées !");
         return;
     }
+
+    console.log("Tentative d'envoi...")
 
     // Infos de la notif
     await Notifications.scheduleNotificationAsync({
@@ -17,10 +19,10 @@ export const envoyerNotification = async () => {
             body: "Contribuez à la planète en participant aux défis 🌱",
             data: { screen: 'index'}
         },
-        trigger: { 
+        trigger: {
             type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-            seconds: 60, 
-        },
+            seconds: 10,
+        }
     })
 
 }
