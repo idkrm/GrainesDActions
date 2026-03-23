@@ -1,6 +1,8 @@
+import { auth } from '@/firebaseBD/firebaseConfig';
+import { Ionicons } from '@expo/vector-icons';
+import { EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { COLORS } from '../../../constants/colors';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 type EditModalProps = {
   visible: boolean;
@@ -11,9 +13,11 @@ type EditModalProps = {
 };
 
 export default function EditModal({ visible, onClose, onSave, field, currentValue }: EditModalProps) {
-  const [val1, setVal1] = useState(''); // le premier input box (son pseudo, ancien mdp ou nv mail)
-  const [val2, setVal2] = useState(''); // deuxième input box (nv mdp ou retaper nv mail)
-  const [val3, setVal3] = useState(''); // troisième input box (retaper nv mdp)
+  const [val1, setVal1] = useState(''); 
+  const [val2, setVal2] = useState('');
+  const [val3, setVal3] = useState(''); 
+
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -27,8 +31,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
     }
   }, [visible, field, currentValue]);
 
-const handleSave = () => {
-    // CAS 1 : Changement d'email
+  const handleSave = async () => {
     if (field === 'email') {
       if (val1 !== val2) {
         Alert.alert("Erreur", "Les adresses mail ne correspondent pas.");
@@ -44,35 +47,55 @@ const handleSave = () => {
       onSave(val1);
       onClose();
     } 
-    
-    // CAS 2 : Changement de mot de passe
+
     else if (field === 'password') {
       if (!val1 || !val2 || !val3) {
         Alert.alert("Erreur", "Veuillez remplir tous les champs.");
         return;
       }
       if (val2 !== val3) {
-        Alert.alert("Erreur", "Les mots de passe ne correspondent pas.");
+        Alert.alert("Erreur", "Les nouveaux mots de passe ne correspondent pas.");
         return;
       }
+      
       if (val2.length < 6) {
         Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
         return;
       }
-      if (!/[A-Z]/.test(val2)) {
-        Alert.alert("Erreur", "Le mot de passe doit contenir au moins une majuscule.");
+      if (!/[0-9]/.test(val2)) {
+        Alert.alert("Erreur", "Le mot de passe doit contenir au moins un chiffre.");
         return;
       }
-      if (!/[!@#$%^&*(),.?":{}|<>]/.test(val2)) {
+      if (!/[!@#$%^&*(),.?":{}|<>\-_]/.test(val2)) {
         Alert.alert("Erreur", "Le mot de passe doit contenir au moins un caractère spécial.");
         return;
       }
 
-      onSave(val2);
-      onClose();
+      const user = auth.currentUser;
+      if (user && user.email) {
+        setLoading(true);
+        const credential = EmailAuthProvider.credential(user.email, val1);
+
+        try {
+          await reauthenticateWithCredential(user, credential);
+          
+          onSave(val2);
+          onClose();
+        } catch (error: any) {
+          // console.error("Erreur de réauthentification :", error);
+          if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+            Alert.alert("Accès refusé", "L'ancien mot de passe est incorrect.");
+          } else {
+            Alert.alert("Erreur", "Impossible de vérifier l'ancien mot de passe.");
+          }
+        } finally {
+          setLoading(false);
+        }
+      } else {
+         Alert.alert("Erreur", "Utilisateur non connecté.");
+      }
     } 
-    
-    // CAS 3 : Changement de pseudo
+  
     else {
       if (!val1 || val1.trim().length === 0) {
         Alert.alert("Erreur", "Le pseudo ne peut pas être vide.");
@@ -84,78 +107,25 @@ const handleSave = () => {
     }
   };
 
+  const getHeaderIcon = () => {
+    switch (field) {
+      case 'pseudo': return { icon: "person-outline", color: "#65B369", bg: "#E8F5E9" };
+      case 'email': return { icon: "mail-outline", color: "#4FC3F7", bg: "#E1F5FE" };
+      case 'password': return { icon: "lock-closed-outline", color: "#F57C00", bg: "#FFF3E0" };
+      default: return { icon: "create-outline", color: "#666", bg: "#F5F5F5" };
+    }
+  };
+
   const getTitle = () => {
     switch (field) {
       case 'pseudo': return "Modifier le pseudo";
-      case 'email': return "Changer d'adresse mail";
-      case 'password': return "Changer le mot de passe";
+      case 'email': return "Modifier l'adresse mail";
+      case 'password': return "Changer de mot de passe";
       default: return "Modifier";
     }
   };
 
-  const renderInputs = () => {
-    switch (field) {
-      case 'password':
-        return (
-          <>
-            <TextInput
-              style={styles.input}
-              value={val1}
-              onChangeText={setVal1}
-              placeholder="Mot de passe actuel"
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.input}
-              value={val2}
-              onChangeText={setVal2}
-              placeholder="Nouveau mot de passe"
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.input}
-              value={val3}
-              onChangeText={setVal3}
-              placeholder="Confirmer le nouveau mot de passe"
-              secureTextEntry
-            />
-          </>
-        );
-
-      case 'email':
-        return (
-          <>
-            <TextInput
-              style={styles.input}
-              value={val1}
-              onChangeText={setVal1}
-              placeholder="Nouvelle adresse mail"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              value={val2}
-              onChangeText={setVal2}
-              placeholder="Confirmer l'adresse mail"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </>
-        );
-
-      case 'pseudo':
-      default:
-        return (
-          <TextInput
-            style={styles.input}
-            value={val1}
-            onChangeText={setVal1}
-            placeholder="Nouveau pseudo"
-          />
-        );
-    }
-  };
+  const headerConfig = getHeaderIcon();
 
   return (
     <Modal
@@ -166,21 +136,109 @@ const handleSave = () => {
     >
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
+          
+          {/* ICON HEADER */}
+          <View style={[styles.iconContainer, { backgroundColor: headerConfig.bg }]}>
+            <Ionicons name={headerConfig.icon as any} size={28} color={headerConfig.color} />
+          </View>
+          
           <Text style={styles.modalTitle}>{getTitle()}</Text>
 
-          <View style={{ width: '100%' }}>
-            {renderInputs()}
+          {/* INPUTS */}
+          <View style={styles.inputsWrapper}>
+            {field === 'password' && (
+              <>
+                <Text style={styles.inputLabel}>Mot de passe actuel</Text>
+                <TextInput
+                  style={styles.input}
+                  value={val1}
+                  onChangeText={setVal1}
+                  placeholder="Saisissez votre mot de passe"
+                  placeholderTextColor="#999"
+                  secureTextEntry
+                />
+                
+                <Text style={[styles.inputLabel, { marginTop: 10 }]}>Nouveau mot de passe</Text>
+                <TextInput
+                  style={styles.input}
+                  value={val2}
+                  onChangeText={setVal2}
+                  placeholder="Min. 6 caractères, 1 chiffre, 1 carac. spé."
+                  placeholderTextColor="#999"
+                  secureTextEntry
+                />
+                <TextInput
+                  style={[styles.input, { marginTop: 10 }]}
+                  value={val3}
+                  onChangeText={setVal3}
+                  placeholder="Confirmez le nouveau mot de passe"
+                  placeholderTextColor="#999"
+                  secureTextEntry
+                />
+              </>
+            )}
+
+            {field === 'email' && (
+              <>
+                <Text style={styles.inputLabel}>Nouveau contact</Text>
+                <TextInput
+                  style={styles.input}
+                  value={val1}
+                  onChangeText={setVal1}
+                  placeholder="Nouvelle adresse mail"
+                  placeholderTextColor="#999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={[styles.input, { marginTop: 10 }]}
+                  value={val2}
+                  onChangeText={setVal2}
+                  placeholder="Confirmez l'adresse mail"
+                  placeholderTextColor="#999"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </>
+            )}
+
+            {field === 'pseudo' && (
+              <>
+                <Text style={styles.inputLabel}>Comment doit-on t'appeler ?</Text>
+                <TextInput
+                  style={styles.input}
+                  value={val1}
+                  onChangeText={setVal1}
+                  placeholder="Nouveau pseudo"
+                  placeholderTextColor="#999"
+                />
+              </>
+            )}
           </View>
 
+          {/* BOUTONS */}
           <View style={styles.buttonContainer}>
-            <Pressable style={[styles.button, styles.buttonCancel]} onPress={onClose}>
+            <Pressable 
+              style={[styles.button, styles.buttonCancel]} 
+              onPress={onClose}
+              disabled={loading}
+            >
               <Text style={styles.textCancel}>Annuler</Text>
             </Pressable>
 
-            <Pressable style={[styles.button, styles.buttonSave]} onPress={handleSave}>
-              <Text style={styles.textSave}>Valider</Text>
+            <Pressable 
+              style={[styles.button, styles.buttonSave]} 
+              onPress={handleSave}
+              disabled={loading}
+            >
+              {loading ? (
+                 <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                 <Text style={styles.textSave}>Valider</Text>
+              )}
             </Pressable>
           </View>
+          
         </View>
       </View>
     </Modal>
@@ -192,64 +250,93 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 20,
   },
   modalView: {
-    width: '85%',
+    width: '100%',
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 25,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  iconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1A1A1A',
+    marginBottom: 25,
+  },
+
+  // Inputs
+  inputsWrapper: {
+    width: '100%',
+    marginBottom: 30,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#888',
+    marginBottom: 8,
+    marginLeft: 4,
   },
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 15,
+    borderColor: '#EFEFEF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     fontSize: 16,
     backgroundColor: '#FAFAFA',
+    color: '#1A1A1A',
   },
+
+  // Buttons
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    gap: 10,
-    marginTop: 10,
+    gap: 15,
   },
   button: {
-    borderRadius: 10,
-    padding: 12,
-    elevation: 2,
+    borderRadius: 16,
+    paddingVertical: 14,
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonCancel: {
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#F5F5F5',
   },
   buttonSave: {
-    backgroundColor: COLORS.primaryGreen,
+    backgroundColor: '#65B369',
+    shadowColor: "#65B369",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   textCancel: {
-    color: '#333',
-    fontWeight: '600',
+    color: '#555',
+    fontWeight: '700',
+    fontSize: 16,
   },
   textSave: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontSize: 16,
   },
 });

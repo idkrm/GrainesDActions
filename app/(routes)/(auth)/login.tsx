@@ -52,7 +52,7 @@ export default function LoginScreen() {
       console.log("Connecté:", userCred.user.uid);
       router.replace("/(tabs)");
     } catch (error: any) {
-      console.error("Erreur login:", error?.code, error?.message);
+      // console.error("Erreur login:", error?.code, error?.message);
 
       const code = error?.code;
       const firebaseErrors: typeof errors = {};

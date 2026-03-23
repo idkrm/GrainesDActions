@@ -68,7 +68,7 @@ export default function ShopScreen() {
           setRecompenses(data);
           setChargement(false);
         },
-        (error) => { console.error(error); setChargement(false); }
+        // (error) => { console.error(error); setChargement(false); }
     );
 
     // associations
@@ -77,7 +77,7 @@ export default function ShopScreen() {
           const data = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Association, "id">) }));
           setAssociations(data as Association[]);
         },
-        (error) => console.error(error)
+        // (error) => console.error(error)
     );
 
     // magasins
@@ -86,7 +86,7 @@ export default function ShopScreen() {
           const data = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Magasin, "id">) }));
           setMagasins(data as Magasin[]);
         },
-        (error) => console.error(error)
+        // (error) => console.error(error)
     );
 
     return () => { unsubRecompenses(); unsubAssos(); unsubMagasins(); };
@@ -193,7 +193,7 @@ export default function ShopScreen() {
         setSelectedReward(null);
 
     } catch (error) {
-        console.error("Erreur", error);
+        // console.error("Erreur", error);
     }
   };
 

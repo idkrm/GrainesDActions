@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
-  View,
-  Linking
+  View
 } from 'react-native';
 import EditModal from '../../components/profile/EditProfileModal';
 
@@ -65,7 +65,7 @@ export default function EditProfileScreen() {
             if (data.is_public !== undefined) setPublicEnabled(data.is_public);
           }
         } catch (error) {
-          console.error("Erreur lecture Firestore:", error);
+          // console.error("Erreur lecture Firestore:", error);
         }
       }
       setLoading(false);
@@ -103,7 +103,7 @@ export default function EditProfileScreen() {
       }
 
     } catch (error: any) {
-      console.error("ERREUR UPDATE :", error.code, error.message);
+      // console.error("ERREUR UPDATE :", error.code, error.message);
       if (error.code === "auth/requires-recent-login") {
         Alert.alert("Reconnexion requise", "Veuillez vous déconnecter et vous reconnecter pour modifier cette information sensible.");
       } else {
@@ -128,7 +128,7 @@ export default function EditProfileScreen() {
       });
     } catch (error) {
       // 3. Rollback en cas d'erreur
-      console.error(error);
+      // console.error(error);
       setPublicEnabled(!value);
       Alert.alert("Erreur", "Impossible de sauvegarder vos préférences.");
     }
@@ -154,7 +154,7 @@ export default function EditProfileScreen() {
           setNotifEnabled(false);
         }
       } catch(e) {
-        console.error("Erreur :", e);
+        // console.error("Erreur :", e);
       }
     }
     checkPermission();
@@ -201,7 +201,7 @@ export default function EditProfileScreen() {
         console.log("Notifications stoppées...")
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       setNotifEnabled(!value); // Retour en arrière en cas de bug réseau
       Alert.alert("Erreur", "Impossible de mettre à jour vos préférences.");
     }
