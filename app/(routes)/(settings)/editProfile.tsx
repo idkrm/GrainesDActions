@@ -152,6 +152,8 @@ export default function EditProfileScreen() {
         if (status !== 'granted') {
           // Si l'utilisateur a coupé les notifs dans les réglages
           setNotifEnabled(false);
+        } else {
+          setNotifEnabled(true);
         }
       } catch(e) {
         // console.error("Erreur :", e);

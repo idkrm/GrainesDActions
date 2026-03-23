@@ -5,6 +5,7 @@ import { deleteUser, signOut } from "firebase/auth";
 import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Notifications from "expo-notifications";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
   // --- ACTIONS (Déconnexion & Suppression) ---
   const doLogout = async () => {
     try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
       await signOut(auth);
       router.replace("/login"); 
     } catch (e) {
@@ -71,10 +73,12 @@ export default function ProfileScreen() {
       try {
         const user = auth.currentUser;
         if (!user) return router.replace("/login");
-
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        console.log("Toutes les notifications sont vidés")
         await deleteDoc(doc(db, "Users", user.uid));
         await deleteUser(user);
         router.replace("/login");
+        console.log("Compte supprimé")
       } catch (e: any) {
         if (e?.code === "auth/requires-recent-login") {
           Alert.alert("Reconnexion requise", "Pour des raisons de sécurité, reconnecte-toi puis réessaie.");

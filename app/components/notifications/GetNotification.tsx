@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from "../../firebaseConfig";
 
 export const envoyerNotification = async () => {
     // Attendre que l'utilisateur donne la permission
@@ -9,6 +11,12 @@ export const envoyerNotification = async () => {
         Alert.alert("Les permission des notifications ont été désactivées !");
         return;
     }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const userRef = doc(db, "Users", currentUser.uid);
+    await updateDoc(userRef, { notifications_enabled: true });
 
     console.log("Tentative d'envoi...")
 

@@ -8,7 +8,8 @@ import {
   getDocs,
   onSnapshot,
   query,
-  where
+  where,
+  updateDoc
 } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -22,6 +23,7 @@ import {
 } from 'react-native';
 import { getCategoryConfig } from '../components/SharedComponents';
 import { envoyerNotification } from '../components/notifications/GetNotification';
+import * as Notifications from "expo-notifications";
 
 // --- INTERFACES ---
 interface Defi {
@@ -145,12 +147,24 @@ export default function HomeScreen() {
         setPseudo(userData?.pseudo || "Éco-citoyen");
 
         const defiIds = (userData?.defi_en_cours ?? []) as string[];
+        
+        const enleverNotifs = async () => {
+          const currentUser = auth.currentUser;
+          if (!currentUser) return;
+
+          await Notifications.cancelAllScheduledNotificationsAsync;
+
+          const userRef = doc(db, "Users", currentUser.uid);
+          await updateDoc(userRef, { notifications_enabled: false });
+        }
 
         if (!defiIds.length) {
           setDefisEnCours([]);
           envoyerNotification();
           setLoadingDefis(false);
           return;
+        } else {
+          enleverNotifs();
         }
 
         const snaps = await Promise.all(
@@ -175,6 +189,8 @@ export default function HomeScreen() {
 
         if(cards.length === 0){
           envoyerNotification();
+        } else {
+          enleverNotifs();
         }
 
       } catch (e) {
