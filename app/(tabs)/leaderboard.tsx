@@ -136,9 +136,6 @@ const PodiumBar = ({ rank, points, color, height, username, isFirst }: any) => {
 
   return (
       <View style={styles.barWrapper}>
-        {isFirst && (
-            <Ionicons name="crown" size={32} color="#FFD700" style={styles.crown} />
-        )}
 
         <View style={[styles.avatar, { borderColor: color }]}>
           <Ionicons name="person" size={24} color={color} />
