@@ -5,10 +5,11 @@ import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, deleteUser, signOut } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
+import * as Notifications from 'expo-notifications';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -90,6 +91,28 @@ export default function RegisterScreen() {
 
       // 2) Création du document utilisateur dans Firestore
       try {
+        // Activation des notifications selon le choix de l'utilisateur
+        let notifStatus = false;
+
+        if(acceptNotifs) {
+          const { status } = await Notifications.requestPermissionsAsync();
+          if(status === 'granted'){
+            notifStatus = true;
+          } else {
+            setAcceptNotifs(false)
+            notifStatus = false
+
+            Alert.alert("Ouvrir les réglages", "Veuillez activez les notifications dans les réglages pour en recevoir ⚙️",
+              [
+                {text: "Annuler", onPress: () => {setAcceptNotifs(false); notifStatus = false}, style: "cancel"},
+                {text: "Accéder aux réglages", onPress: () => { Linking.openSettings() }}
+              ]
+            )
+          }
+        } else {
+          notifStatus = false;
+        }
+
         await setDoc(doc(db, "Users", uid), {
           admin: false,
           email: email.trim().toLowerCase(),
@@ -99,7 +122,7 @@ export default function RegisterScreen() {
           defi_realise: {},
           recompense: [],
           is_public: acceptData,
-          notifications_enabled: acceptNotifs,
+          notifications_enabled: notifStatus,
           createdAt: serverTimestamp(),
         });
       } catch (e) {
@@ -212,12 +235,12 @@ export default function RegisterScreen() {
                 color={acceptData ? COLORS.primaryGreen : undefined}
             />
             <Text style={styles.checkboxLabel}>
-              J'accepte que mes données soient récupérées et utilisées pour le bon fonctionnement de l'application*
+              J'accepte que mes données soient récupérées et utilisées pour le bon fonctionnement de l'application *
             </Text>
           </View>
           {!!errors.acceptData && <Text style={styles.errorText}>{errors.acceptData}</Text>}
 
-          {/* Checkbox 2 facultatif (notifications)
+          {/* Checkbox 2 facultatif (notifications)*/}
           <View style={styles.checkboxContainer}>
             <Checkbox
                 style={styles.checkbox}
@@ -228,7 +251,7 @@ export default function RegisterScreen() {
             <Text style={styles.checkboxLabel}>
               Je souhaite activer les notifications de défis quotidiens
             </Text>
-          </View> */}
+          </View> 
 
           {!!errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 

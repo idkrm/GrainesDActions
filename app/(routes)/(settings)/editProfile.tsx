@@ -197,7 +197,7 @@ export default function EditProfileScreen() {
         await updateDoc(userRef, { notifications_enabled: false });
         // Vider la mémoire de la prochaine alerte déjà programmée
         await Notifications.cancelAllScheduledNotificationsAsync();
-        Alert.alert("Désactivé", "Les notifications sont désactivées, vous ne recevrez plus de rappel à partir de maintenant 🔔")
+        Alert.alert("Désactivé", "Les notifications sont désactivées, vous ne recevrez plus de rappels à partir de maintenant 🔔")
         console.log("Notifications stoppées...")
       }
     } catch (error) {
