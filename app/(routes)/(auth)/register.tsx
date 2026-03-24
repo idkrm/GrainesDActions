@@ -5,11 +5,12 @@ import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, deleteUser, signOut } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
 import * as Notifications from 'expo-notifications';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -21,6 +22,9 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptData, setAcceptData] = useState(false);
   const [acceptNotifs, setAcceptNotifs] = useState(false);
+  const [passwordHidden, setPasswordHidden] = useState(true);
+  const [passwordHiddenBis, setPasswordHiddenBis] = useState(true);
+
 
   const [errors, setErrors] = useState<{
     pseudo?: string;
@@ -186,7 +190,8 @@ export default function RegisterScreen() {
               autoCapitalize="none"
           />
           {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
+          
+          <View style={styles.inputContainer}>
           <AuthInput
               label="Mot de passe"
               value={password}
@@ -194,8 +199,19 @@ export default function RegisterScreen() {
                 setPassword(v);
                 clearFieldError("password");
               }}
-              secureTextEntry
+              secureTextEntry={passwordHidden}
           />
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={() => setPasswordHidden(!passwordHidden)}
+          >
+          <Ionicons 
+            name={passwordHidden ? "eye-off" : "eye"} 
+            size={24} 
+            color="#4cb05b"
+          />
+          </TouchableOpacity>
+          </View>
 
           {/* ✅ Checklist live mot de passe */}
           <View style={styles.checklistContainer}>
@@ -212,6 +228,7 @@ export default function RegisterScreen() {
 
           {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
+          <View style={styles.inputContainer}>
           <AuthInput
               label="Confirmation mot de passe"
               value={confirmPassword}
@@ -219,8 +236,19 @@ export default function RegisterScreen() {
                 setConfirmPassword(v);
                 clearFieldError("confirmPassword");
               }}
-              secureTextEntry
+              secureTextEntry={passwordHiddenBis}
           />
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={() => setPasswordHiddenBis(!passwordHiddenBis)}
+          >
+          <Ionicons 
+            name={passwordHiddenBis ? "eye-off" : "eye"} 
+            size={24} 
+            color="#4cb05b"
+          />
+          </TouchableOpacity>
+          </View>
           {!!errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
           {/* Checkbox 1 OBLIGATOIRE (collecte des données) */}
@@ -335,4 +363,16 @@ const styles = StyleSheet.create({
   checkKo: {
     color: "#757575",
   },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    height: '95%',
+    top: 6,
+    justifyContent: 'center',
+  },
+  inputContainer: {
+    position: 'relative',
+    width: '100%',
+    alignSelf: 'center'
+  }
 });
