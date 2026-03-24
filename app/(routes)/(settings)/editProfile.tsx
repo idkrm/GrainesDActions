@@ -42,7 +42,7 @@ export default function EditProfileScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | null>(null);
 
-  // --- CHARGEMENT DES DONNÉES ---
+    // --- CHARGEMENT DES DONNÉES ---
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -63,6 +63,10 @@ export default function EditProfileScreen() {
             }));
 
             if (data.is_public !== undefined) setPublicEnabled(data.is_public);
+            
+            if (data.notifications_enabled !== undefined) {
+               setNotifEnabled(data.notifications_enabled);
+            }
           }
         } catch (error) {
           // console.error("Erreur lecture Firestore:", error);
@@ -105,7 +109,7 @@ export default function EditProfileScreen() {
     } catch (error: any) {
       // console.error("ERREUR UPDATE :", error.code, error.message);
       if (error.code === "auth/requires-recent-login") {
-        Alert.alert("Reconnexion requise", "Veuillez vous déconnecter et vous reconnecter pour modifier cette information sensible.");
+        Alert.alert("Reconnexion requise", "Veuillez vous déconnecter et vous reconnecter pour modifier cette information.");
       } else {
         Alert.alert("Erreur", "Une erreur est survenue lors de la modification.");
       }
@@ -123,45 +127,14 @@ export default function EditProfileScreen() {
     // 2. Envoi à Firebase
     try {
       const userRef = doc(db, "Users", currentUser.uid);
-      await updateDoc(userRef, {
-        is_public: value
-      });
+      await updateDoc(userRef, { is_public: value });
     } catch (error) {
-      // 3. Rollback en cas d'erreur
-      // console.error(error);
       setPublicEnabled(!value);
       Alert.alert("Erreur", "Impossible de sauvegarder vos préférences.");
     }
   };
 
   // --- ACTIVATION DES NOTIFICATIONS ---
-  useEffect(() => {
-    const checkPermission = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-
-      try {
-        const userDoc = await getDoc(doc(db, "Users", currentUser.uid));
-        if(userDoc.exists()){
-          const data = userDoc.data();
-          // on met le switch dans l'état enregistré (soit true soit false)
-          setNotifEnabled(data.notifications_enabled || false);
-        }
-
-      const { status } = await Notifications.getPermissionsAsync();
-        if (status !== 'granted') {
-          // Si l'utilisateur a coupé les notifs dans les réglages
-          setNotifEnabled(false);
-        } else {
-          setNotifEnabled(true);
-        }
-      } catch(e) {
-        // console.error("Erreur :", e);
-      }
-    }
-    checkPermission();
-  }, [])
-
   const activateSwitch = async (value: boolean) => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
@@ -169,45 +142,44 @@ export default function EditProfileScreen() {
     setNotifEnabled(value);
 
     try {
-      // Si le switch est désactivé alors ...
-      if(value){
-        const { status : statusActuel } = await Notifications.getPermissionsAsync();
-        let finalStatus = statusActuel;
+      const userRef = doc(db, "Users", currentUser.uid);
 
-        if(statusActuel !== "granted"){
+      if (value) {
+        // L'utilisateur veut ACTIVER
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== 'granted') {
           const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status
+          finalStatus = status;
         }
 
-        if(finalStatus === "granted") {
-          const userRef = doc(db, "Users", currentUser.uid);
+        if (finalStatus === 'granted') {
+          // Tout est bon, on enregistre dans Firebase
           await updateDoc(userRef, { notifications_enabled: true });
-          Alert.alert("Activé", "Les notifications sont activées 🔔")
-
         } else {
+          // L'utilisateur a refusé les permissions systèmes
+          setNotifEnabled(false); // On annule visuellement
           Alert.alert(
-            "Les permissions sont requises",
-            "Veuillez activer les notifications dans les réglages pour en recevoir 🔔",
+            "Permissions requises",
+            "Vous devez autoriser les notifications dans les réglages de votre téléphone.",
             [
-              {text: "Annuler", style: "cancel"},
-              {text: "Ouvrir les réglages", onPress: () => Linking.openSettings()}
+              { text: "Annuler", style: "cancel" },
+              { text: "Ouvrir les réglages", onPress: () => Linking.openSettings() }
             ]
-          )
+          );
         }
       } else {
-        const userRef = doc(db, "Users", currentUser.uid);
+        // L'utilisateur veut DÉSACTIVER
         await updateDoc(userRef, { notifications_enabled: false });
-        // Vider la mémoire de la prochaine alerte déjà programmée
         await Notifications.cancelAllScheduledNotificationsAsync();
-        Alert.alert("Désactivé", "Les notifications sont désactivées, vous ne recevrez plus de rappels à partir de maintenant 🔔")
-        console.log("Notifications stoppées...")
       }
     } catch (error) {
-      // console.error(error);
-      setNotifEnabled(!value); // Retour en arrière en cas de bug réseau
+      // Rollback en cas de crash réseau
+      setNotifEnabled(!value);
       Alert.alert("Erreur", "Impossible de mettre à jour vos préférences.");
     }
-  } 
+  };
 
   if (loading) {
     return (

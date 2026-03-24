@@ -1,5 +1,6 @@
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from "expo-notifications";
 import { Link, useRouter } from 'expo-router';
 import {
   collection,
@@ -8,8 +9,8 @@ import {
   getDocs,
   onSnapshot,
   query,
-  where,
-  updateDoc
+  updateDoc,
+  where
 } from "firebase/firestore";
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -23,7 +24,6 @@ import {
 } from 'react-native';
 import { getCategoryConfig } from '../components/SharedComponents';
 import { envoyerNotification } from '../components/notifications/GetNotification';
-import * as Notifications from "expo-notifications";
 
 // --- INTERFACES ---
 interface Defi {
@@ -160,11 +160,11 @@ export default function HomeScreen() {
 
         if (!defiIds.length) {
           setDefisEnCours([]);
-          envoyerNotification();
+          // envoyerNotification();
           setLoadingDefis(false);
           return;
         } else {
-          enleverNotifs();
+          // enleverNotifs();
         }
 
         const snaps = await Promise.all(
@@ -187,11 +187,11 @@ export default function HomeScreen() {
 
         setDefisEnCours(cards);
 
-        if(cards.length === 0){
-          envoyerNotification();
-        } else {
-          enleverNotifs();
-        }
+        // if(cards.length === 0){
+        //   envoyerNotification();
+        // } else {
+        //   enleverNotifs();
+        // }
 
       } catch (e) {
         console.log("Erreur chargement défis :", e);
@@ -209,7 +209,25 @@ export default function HomeScreen() {
     setTimeout(() => setRefreshing(false), 700);
   }, []);
 
-  // --- 4. CALCUL DES STATISTIQUES ---
+  // --- 4. NOTIFICATION ---
+  useEffect(() => {
+    if (loadingDefis) return;
+
+    if (defisEnCours.length === 0) {
+      envoyerNotification();
+
+      const timerId = setInterval(() => {
+        envoyerNotification();
+        console.log("Notification de rappel envoyée !");
+      }, 60000);
+
+      return () => clearInterval(timerId);
+    } else {
+      Notifications.cancelAllScheduledNotificationsAsync();
+    }
+  }, [defisEnCours.length, loadingDefis]); 
+
+  // --- 5. CALCUL DES STATISTIQUES ---
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;

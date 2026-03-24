@@ -1,26 +1,27 @@
 import * as Notifications from 'expo-notifications';
-import { Alert, Platform } from 'react-native';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
 
 export const envoyerNotification = async () => {
     // Attendre que l'utilisateur donne la permission
     const { status } = await Notifications.getPermissionsAsync();
-
-    if (status !== 'granted') {
-        Alert.alert("Les permission des notifications ont été désactivées !");
-        return;
-    }
-
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
     const userRef = doc(db, "Users", currentUser.uid);
-    await updateDoc(userRef, { notifications_enabled: true });
+    const userSnap = await getDoc(userRef);
 
-    console.log("Tentative d'envoi...")
+    if (userSnap.exists()) {
+        const userData = userSnap.data();
+        
+        if (userData.notifications_enabled !== true) {
+            console.log("Envoi annulé : L'utilisateur a désactivé les notifications dans son profil.");
+            return; 
+        }
+    }
 
-    // Infos de la notif
+    console.log("Tentative d'envoi de la notification...");
+
     await Notifications.scheduleNotificationAsync({
         content: {
             title: "Vous n'avez pas de défis en cours ! ⏰",
@@ -32,6 +33,5 @@ export const envoyerNotification = async () => {
             seconds: 60,
             repeats: true
         }
-    })
-
+    });
 }
