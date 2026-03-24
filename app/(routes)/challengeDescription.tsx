@@ -270,7 +270,7 @@ export default function ChallengeDescription() {
                         <Text style={styles.badgeText}> Difficulté : {defi.difficulte}/5</Text>
                     </View>
                     
-                    {defi.co2 && (
+                    {defi.co2 !== undefined && (
                         <View style={[styles.badge, { backgroundColor: '#E1F5FE' }]}>
                             <Ionicons name="cloudy-outline" size={14} color="#0288D1" />
                             <Text style={[styles.badgeText, { color: '#0288D1' }]}> {defi.co2} kg CO2</Text>
