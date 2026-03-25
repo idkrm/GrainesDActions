@@ -16,7 +16,7 @@ import EditModal from '../../components/profile/EditProfileModal';
 
 // IMPORTS FIREBASE
 import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'; // ✅ Ajout de serverTimestamp
 import { auth, db } from "../../firebaseConfig";
 
 import * as Notifications from "expo-notifications";
@@ -31,18 +31,22 @@ export default function EditProfileScreen() {
   const [publicEnabled, setPublicEnabled] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
 
-  // Données utilisateur
+  // Données utilisateur (✅ Ajout nom, prenom, adresse, last_address_update)
   const [userData, setUserData] = useState({
+    nom: '',
+    prenom: '',
+    adresse: '',
     pseudo: '',
     email: '',
     password: '••••••••',
+    last_address_update: null as any, 
   });
 
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
-  const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | null>(null);
+  const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | 'adresse' | null>(null);
 
-    // --- CHARGEMENT DES DONNÉES ---
+  // --- CHARGEMENT DES DONNÉES ---
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -59,7 +63,11 @@ export default function EditProfileScreen() {
             const data = docSnap.data();
             setUserData(prev => ({
               ...prev,
+              nom: data.nom || '',
+              prenom: data.prenom || '',
+              adresse: data.adresse || 'Non renseignée',
               pseudo: data.pseudo || 'Utilisateur',
+              last_address_update: data.last_address_update || null,
             }));
 
             if (data.is_public !== undefined) setPublicEnabled(data.is_public);
@@ -78,7 +86,7 @@ export default function EditProfileScreen() {
     return () => unsubAuth();
   }, []);
 
-  const openEditModal = (field: 'pseudo' | 'email' | 'password') => {
+  const openEditModal = (field: 'pseudo' | 'email' | 'password' | 'adresse') => {
     setActiveField(field);
     setModalVisible(true);
   };
@@ -105,9 +113,33 @@ export default function EditProfileScreen() {
         await updatePassword(currentUser, newValue); 
         Alert.alert("Succès", "Votre mot de passe a été modifié.");
       }
+      // ✅ LOGIQUE DE CHANGEMENT D'ADRESSE (1 FOIS PAR AN)
+      else if (activeField === 'adresse') {
+        if (userData.last_address_update) {
+          const lastUpdateDate = userData.last_address_update.toDate ? userData.last_address_update.toDate() : new Date(userData.last_address_update);
+          const now = new Date();
+          const oneYearInMs = 365 * 24 * 60 * 60 * 1000;
+          
+          if (now.getTime() - lastUpdateDate.getTime() < oneYearInMs) {
+            Alert.alert("Modification refusée", "Vous avez déjà modifié votre adresse au cours des 12 derniers mois.");
+            return;
+          }
+        }
+
+        await updateDoc(userRef, { 
+            adresse: newValue, 
+            last_address_update: serverTimestamp() 
+        });
+        // Met à jour l'affichage et force un faux timestamp pour éviter de spammer juste après
+        setUserData(prev => ({ 
+            ...prev, 
+            adresse: newValue, 
+            last_address_update: { toDate: () => new Date() } 
+        }));
+        Alert.alert("Succès", "Ton adresse postale a bien été mise à jour.");
+      }
 
     } catch (error: any) {
-      // console.error("ERREUR UPDATE :", error.code, error.message);
       if (error.code === "auth/requires-recent-login") {
         Alert.alert("Reconnexion requise", "Veuillez vous déconnecter et vous reconnecter pour modifier cette information.");
       } else {
@@ -121,10 +153,8 @@ export default function EditProfileScreen() {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     
-    // 1. Mise à jour immédiate de l'interface (optimiste)
     setPublicEnabled(value);
 
-    // 2. Envoi à Firebase
     try {
       const userRef = doc(db, "Users", currentUser.uid);
       await updateDoc(userRef, { is_public: value });
@@ -145,7 +175,6 @@ export default function EditProfileScreen() {
       const userRef = doc(db, "Users", currentUser.uid);
 
       if (value) {
-        // L'utilisateur veut ACTIVER
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
 
@@ -155,11 +184,9 @@ export default function EditProfileScreen() {
         }
 
         if (finalStatus === 'granted') {
-          // Tout est bon, on enregistre dans Firebase
           await updateDoc(userRef, { notifications_enabled: true });
         } else {
-          // L'utilisateur a refusé les permissions systèmes
-          setNotifEnabled(false); // On annule visuellement
+          setNotifEnabled(false); 
           Alert.alert(
             "Permissions requises",
             "Vous devez autoriser les notifications dans les réglages de votre téléphone.",
@@ -170,12 +197,10 @@ export default function EditProfileScreen() {
           );
         }
       } else {
-        // L'utilisateur veut DÉSACTIVER
         await updateDoc(userRef, { notifications_enabled: false });
         await Notifications.cancelAllScheduledNotificationsAsync();
       }
     } catch (error) {
-      // Rollback en cas de crash réseau
       setNotifEnabled(!value);
       Alert.alert("Erreur", "Impossible de mettre à jour vos préférences.");
     }
@@ -207,15 +232,60 @@ export default function EditProfileScreen() {
           <Text style={styles.subtitle}>Gère tes informations personnelles</Text>
         </View>
 
-        {/* SECTION PROFIL (CARTE BLANCHE) */}
+        {/* SECTION PROFIL */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Général</Text>
+          <Text style={styles.sectionTitle}>Identité & Contact</Text>
           <View style={styles.card}>
 
-            {/* Ligne Pseudo */}
+            {/* ✅ Ligne Nom (Non modifiable) */}
+            <View style={styles.fieldRow}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#ECEFF1' }]}>
+                <Ionicons name="person" size={20} color="#78909C" />
+              </View>
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Nom</Text>
+                <Text style={[styles.fieldValue, { color: '#757575' }]} numberOfLines={1}>{userData.nom}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* ✅ Ligne Prénom (Non modifiable) */}
+            <View style={styles.fieldRow}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#ECEFF1' }]}>
+                <Ionicons name="person" size={20} color="#78909C" />
+              </View>
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Prénom</Text>
+                <Text style={[styles.fieldValue, { color: '#757575' }]} numberOfLines={1}>{userData.prenom}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* ✅ Ligne Adresse Postale (Modifiable) */}
+            <Pressable style={styles.fieldRow} onPress={() => openEditModal('adresse')}>
+              <View style={[styles.iconWrapper, { backgroundColor: '#F3E5F5' }]}>
+                <Ionicons name="home-outline" size={20} color="#8E24AA" />
+              </View>
+              <View style={styles.fieldTexts}>
+                <Text style={styles.fieldLabel}>Adresse postale</Text>
+                <Text style={styles.fieldValue} numberOfLines={1}>{userData.adresse}</Text>
+              </View>
+              <Ionicons name="pencil" size={20} color="#ccc" />
+            </Pressable>
+
+          </View>
+        </View>
+
+        {/* SECTION CONNEXION */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Données du compte</Text>
+          <View style={styles.card}>
+
             <Pressable style={styles.fieldRow} onPress={() => openEditModal('pseudo')}>
               <View style={[styles.iconWrapper, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="person-outline" size={20} color="#65B369" />
+                <Ionicons name="at-outline" size={20} color="#65B369" />
               </View>
               <View style={styles.fieldTexts}>
                 <Text style={styles.fieldLabel}>Pseudo</Text>
@@ -226,7 +296,6 @@ export default function EditProfileScreen() {
 
             <View style={styles.divider} />
 
-            {/* Ligne Email */}
             <Pressable style={styles.fieldRow} onPress={() => openEditModal('email')}>
               <View style={[styles.iconWrapper, { backgroundColor: '#E1F5FE' }]}>
                 <Ionicons name="mail-outline" size={20} color="#4FC3F7" />
@@ -240,7 +309,6 @@ export default function EditProfileScreen() {
 
             <View style={styles.divider} />
 
-            {/* Ligne Mot de passe */}
             <Pressable style={[styles.fieldRow, { borderBottomWidth: 0 }]} onPress={() => openEditModal('password')}>
               <View style={[styles.iconWrapper, { backgroundColor: '#FFF3E0' }]}>
                 <Ionicons name="lock-closed-outline" size={20} color="#F57C00" />
@@ -261,8 +329,8 @@ export default function EditProfileScreen() {
           <View style={styles.card}>
             
             <View style={[styles.fieldRow, { borderBottomWidth: 0 }]}>
-              <View style={[styles.iconWrapper, { backgroundColor: '#F3E5F5' }]}>
-                <Ionicons name="earth-outline" size={20} color="#BA68C8" />
+              <View style={[styles.iconWrapper, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="earth-outline" size={20} color="#1976D2" />
               </View>
               
               <View style={styles.fieldTexts}>
@@ -309,7 +377,6 @@ export default function EditProfileScreen() {
 
       </ScrollView>
 
-      {/* MODAL EXISTANT */}
       <EditModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -324,7 +391,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FAFAFA', // Fond Soft UI
+    backgroundColor: '#FAFAFA', 
     paddingTop: 50,
   },
   center: {
@@ -335,8 +402,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-
-  // --- HEADER ---
   headerTop: {
     paddingHorizontal: 20,
     marginBottom: 10,
@@ -359,8 +424,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
-
-  // --- SECTIONS & CARTES ---
   section: {
     marginBottom: 30,
   },
@@ -375,15 +438,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     paddingHorizontal: 15,
-    // Soft UI Shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-
-  // --- LIGNES DE CHAMP (ROWS) ---
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -420,6 +480,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F0F0F0',
-    marginLeft: 57, // Aligné avec le texte (largeur icone + marge)
+    marginLeft: 57, 
   },
 });

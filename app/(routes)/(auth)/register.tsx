@@ -1,32 +1,42 @@
 import { COLORS } from '@/constants/colors';
 import { auth, db } from "@/firebaseBD/firebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, deleteUser, signOut } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
-import * as Notifications from 'expo-notifications';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const router = useRouter();
 
   // Champs formulaire
+  const [nom, setNom] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [adresse, setAdresse] = useState('');
   const [pseudo, setPseudo] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [acceptData, setAcceptData] = useState(false);
   const [acceptNotifs, setAcceptNotifs] = useState(false);
+  
   const [passwordHidden, setPasswordHidden] = useState(true);
   const [passwordHiddenBis, setPasswordHiddenBis] = useState(true);
 
+  // État pour la modale de confidentialité
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
 
   const [errors, setErrors] = useState<{
+    nom?: string;
+    prenom?: string;
+    adresse?: string;
     pseudo?: string;
     email?: string;
     password?: string;
@@ -55,6 +65,9 @@ export default function RegisterScreen() {
     const newErrors: typeof errors = {};
 
     // Validations
+    if (!nom.trim()) newErrors.nom = "Le nom est requis.";
+    if (!prenom.trim()) newErrors.prenom = "Le prénom est requis.";
+    if (!adresse.trim()) newErrors.adresse = "L'adresse postale est requise.";
     if (!pseudo.trim()) newErrors.pseudo = "Le pseudo est requis.";
     if (!email.trim()) newErrors.email = "L'adresse mail est requise.";
     if (!password) newErrors.password = "Le mot de passe est requis.";
@@ -75,7 +88,7 @@ export default function RegisterScreen() {
     }
 
     if (!acceptData) {
-      newErrors.acceptData = "Tu dois accepter la collecte des données.";
+      newErrors.acceptData = "Veuillez accepter la politique de confidentialité.";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -117,7 +130,11 @@ export default function RegisterScreen() {
           notifStatus = false;
         }
 
+        // Ajout des nouveaux champs dans Firestore
         await setDoc(doc(db, "Users", uid), {
+          nom: nom.trim(),
+          prenom: prenom.trim(),
+          adresse: adresse.trim(),
           admin: false,
           email: email.trim().toLowerCase(),
           pseudo: pseudo.trim(),
@@ -125,7 +142,7 @@ export default function RegisterScreen() {
           defi_en_cours: [],
           defi_realise: {},
           recompense: [],
-          is_public: acceptData,
+          is_public: false,
           notifications_enabled: notifStatus,
           createdAt: serverTimestamp(),
         });
@@ -163,14 +180,44 @@ export default function RegisterScreen() {
 
   return (
       <ScrollView 
-        contentContainerStyle={styles.scrollContent} // <--- Modification ici
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <AuthContainer>
           <Text style={styles.title}>Création de compte</Text>
+          <Text style={styles.subtitle}>* Champs obligatoires</Text>
+          <AuthInput
+              label="Nom *"
+              value={nom}
+              onChangeText={(v: string) => {
+                setNom(v);
+                clearFieldError("nom");
+              }}
+          />
+          {!!errors.nom && <Text style={styles.errorText}>{errors.nom}</Text>}
 
           <AuthInput
-              label="Pseudo"
+              label="Prénom *"
+              value={prenom}
+              onChangeText={(v: string) => {
+                setPrenom(v);
+                clearFieldError("prenom");
+              }}
+          />
+          {!!errors.prenom && <Text style={styles.errorText}>{errors.prenom}</Text>}
+
+          <AuthInput
+              label="Adresse postale *"
+              value={adresse}
+              onChangeText={(v: string) => {
+                setAdresse(v);
+                clearFieldError("adresse");
+              }}
+          />
+          {!!errors.adresse && <Text style={styles.errorText}>{errors.adresse}</Text>}
+
+          <AuthInput
+              label="Pseudo *"
               value={pseudo}
               onChangeText={(v: string) => {
                 setPseudo(v);
@@ -180,7 +227,7 @@ export default function RegisterScreen() {
           {!!errors.pseudo && <Text style={styles.errorText}>{errors.pseudo}</Text>}
 
           <AuthInput
-              label="Adresse mail"
+              label="Adresse mail *"
               value={email}
               onChangeText={(v: string) => {
                 setEmail(v);
@@ -192,25 +239,25 @@ export default function RegisterScreen() {
           {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           
           <View style={styles.inputContainer}>
-          <AuthInput
-              label="Mot de passe"
-              value={password}
-              onChangeText={(v: string) => {
-                setPassword(v);
-                clearFieldError("password");
-              }}
-              secureTextEntry={passwordHidden}
-          />
-          <TouchableOpacity 
-            style={styles.eyeIcon} 
-            onPress={() => setPasswordHidden(!passwordHidden)}
-          >
-          <Ionicons 
-            name={passwordHidden ? "eye-off" : "eye"} 
-            size={24} 
-            color="#4cb05b"
-          />
-          </TouchableOpacity>
+            <AuthInput
+                label="Mot de passe *"
+                value={password}
+                onChangeText={(v: string) => {
+                  setPassword(v);
+                  clearFieldError("password");
+                }}
+                secureTextEntry={passwordHidden}
+            />
+            <TouchableOpacity 
+              style={styles.eyeIcon} 
+              onPress={() => setPasswordHidden(!passwordHidden)}
+            >
+            <Ionicons 
+              name={passwordHidden ? "eye-off" : "eye"} 
+              size={24} 
+              color="#4cb05b"
+            />
+            </TouchableOpacity>
           </View>
 
           {/* ✅ Checklist live mot de passe */}
@@ -229,29 +276,29 @@ export default function RegisterScreen() {
           {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
           <View style={styles.inputContainer}>
-          <AuthInput
-              label="Confirmation mot de passe"
-              value={confirmPassword}
-              onChangeText={(v: string) => {
-                setConfirmPassword(v);
-                clearFieldError("confirmPassword");
-              }}
-              secureTextEntry={passwordHiddenBis}
-          />
-          <TouchableOpacity 
-            style={styles.eyeIcon} 
-            onPress={() => setPasswordHiddenBis(!passwordHiddenBis)}
-          >
-          <Ionicons 
-            name={passwordHiddenBis ? "eye-off" : "eye"} 
-            size={24} 
-            color="#4cb05b"
-          />
-          </TouchableOpacity>
+            <AuthInput
+                label="Confirmation mot de passe *"
+                value={confirmPassword}
+                onChangeText={(v: string) => {
+                  setConfirmPassword(v);
+                  clearFieldError("confirmPassword");
+                }}
+                secureTextEntry={passwordHiddenBis}
+            />
+            <TouchableOpacity 
+              style={styles.eyeIcon} 
+              onPress={() => setPasswordHiddenBis(!passwordHiddenBis)}
+            >
+            <Ionicons 
+              name={passwordHiddenBis ? "eye-off" : "eye"} 
+              size={24} 
+              color="#4cb05b"
+            />
+            </TouchableOpacity>
           </View>
           {!!errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
-          {/* Checkbox 1 OBLIGATOIRE (collecte des données) */}
+          {/* Checkbox 1 OBLIGATOIRE (collecte des données) avec Pop-up */}
           <View style={styles.checkboxContainer}>
             <Checkbox
                 style={styles.checkbox}
@@ -262,9 +309,14 @@ export default function RegisterScreen() {
                 }}
                 color={acceptData ? COLORS.primaryGreen : undefined}
             />
-            <Text style={styles.checkboxLabel}>
-              J'accepte que mes données soient récupérées et utilisées pour le bon fonctionnement de l'application *
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.checkboxLabel}>
+                J'accepte que mes données soient récupérées et utilisées pour le bon fonctionnement de l'application *
+              </Text>
+              <TouchableOpacity onPress={() => setPrivacyModalVisible(true)}>
+                <Text style={styles.privacyLink}>En savoir plus sur la politique de confidentialité</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           {!!errors.acceptData && <Text style={styles.errorText}>{errors.acceptData}</Text>}
 
@@ -291,13 +343,49 @@ export default function RegisterScreen() {
               <Text style={[styles.footerText, styles.linkText]}>Se connecter</Text>
             </Pressable>
           </View>
+
+          {/* MODAL POUR LA POLITIQUE DE CONFIDENTIALITÉ */}
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={privacyModalVisible}
+            onRequestClose={() => setPrivacyModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Politique de Confidentialité</Text>
+                
+                <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
+                  <Text style={styles.modalText}>
+                    En créant un compte, vous acceptez de nous confier certaines informations personnelles (Nom, Prénom, Adresse postale, Adresse mail et Pseudo).
+                    {"\n\n"}
+                    <Text style={{ fontWeight: 'bold' }}>1. Utilisation des données</Text>{"\n"}
+                    Vos données sont collectées exclusivement pour vous permettre d'utiliser les fonctionnalités de l'application (validation de défis, classement, etc.).
+                    {"\n\n"}
+                    <Text style={{ fontWeight: 'bold' }}>2. Protection et Partage</Text>{"\n"}
+                    Vos informations sont stockées de manière sécurisée et ne seront jamais revendues ou partagées à des tiers à des fins commerciales sans votre consentement explicite.
+                    {"\n\n"}
+                    <Text style={{ fontWeight: 'bold' }}>3. Vos droits</Text>{"\n"}
+                    Conformément à la réglementation (RGPD), vous disposez d'un droit d'accès, de rectification et de suppression de vos données personnelles à tout moment depuis les paramètres de votre compte ou en nous contactant.
+                  </Text>
+                </ScrollView>
+
+                <TouchableOpacity 
+                  style={styles.modalButton} 
+                  onPress={() => setPrivacyModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>J'ai compris</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
         </AuthContainer>
       </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  // Nouveau style pour le centrage vertical
   scrollContent: {
     flexGrow: 1,           
     justifyContent: 'center', 
@@ -323,10 +411,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   checkboxLabel: {
-    flex: 1,
     fontSize: 13,
     color: COLORS.textDark,
     lineHeight: 18,
+  },
+  privacyLink: {
+    fontSize: 13,
+    color: COLORS.primaryGreen,
+    textDecorationLine: 'underline',
+    marginTop: 4,
+    fontWeight: '600',
   },
   linkText: {
     color: COLORS.primaryGreen,
@@ -374,5 +468,46 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     alignSelf: 'center'
-  }
+  },
+  // --- STYLES MODAL ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 25,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.textDark,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalScroll: {
+    marginBottom: 20,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#444',
+    lineHeight: 22,
+  },
+  modalButton: {
+    backgroundColor: COLORS.primaryGreen,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
