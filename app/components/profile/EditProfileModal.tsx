@@ -8,7 +8,8 @@ type EditModalProps = {
   visible: boolean;
   onClose: () => void;
   onSave: (newValue: string) => void;
-  field: 'pseudo' | 'email' | 'password' | null;
+  // ✅ Ajout de "adresse" aux choix possibles
+  field: 'pseudo' | 'email' | 'password' | 'adresse' | null; 
   currentValue: string;
 };
 
@@ -21,7 +22,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
 
   useEffect(() => {
     if (visible) {
-      if (field === 'pseudo') {
+      if (field === 'pseudo' || field === 'adresse') {
         setVal1(currentValue); 
       } else {
         setVal1('');
@@ -82,7 +83,6 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
           onSave(val2);
           onClose();
         } catch (error: any) {
-          // console.error("Erreur de réauthentification :", error);
           if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
             Alert.alert("Accès refusé", "L'ancien mot de passe est incorrect.");
           } else {
@@ -97,8 +97,9 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
     } 
   
     else {
+      // Pour le Pseudo ET l'Adresse Postale
       if (!val1 || val1.trim().length === 0) {
-        Alert.alert("Erreur", "Le pseudo ne peut pas être vide.");
+        Alert.alert("Erreur", "Ce champ ne peut pas être vide.");
         return;
       }
       
@@ -109,9 +110,10 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
 
   const getHeaderIcon = () => {
     switch (field) {
-      case 'pseudo': return { icon: "person-outline", color: "#65B369", bg: "#E8F5E9" };
+      case 'pseudo': return { icon: "at-outline", color: "#65B369", bg: "#E8F5E9" };
       case 'email': return { icon: "mail-outline", color: "#4FC3F7", bg: "#E1F5FE" };
       case 'password': return { icon: "lock-closed-outline", color: "#F57C00", bg: "#FFF3E0" };
+      case 'adresse': return { icon: "home-outline", color: "#8E24AA", bg: "#F3E5F5" }; // ✅ Icône Adresse
       default: return { icon: "create-outline", color: "#666", bg: "#F5F5F5" };
     }
   };
@@ -121,6 +123,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
       case 'pseudo': return "Modifier le pseudo";
       case 'email': return "Modifier l'adresse mail";
       case 'password': return "Changer de mot de passe";
+      case 'adresse': return "Modifier l'adresse"; // ✅ Titre Adresse
       default: return "Modifier";
     }
   };
@@ -214,6 +217,26 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
                 />
               </>
             )}
+
+            {/* ✅ CHAMP ADRESSE AVEC AVERTISSEMENT */}
+            {field === 'adresse' && (
+              <>
+                <Text style={styles.inputLabel}>Où envoyer tes futures récompenses ?</Text>
+                <TextInput
+                  style={styles.input}
+                  value={val1}
+                  onChangeText={setVal1}
+                  placeholder="123 Rue de l'Exemple, 75000 Paris"
+                  placeholderTextColor="#999"
+                />
+                <View style={styles.warningBox}>
+                  <Ionicons name="alert-circle" size={16} color="#D32F2F" style={{marginRight: 6}} />
+                  <Text style={styles.warningText}>
+                    Attention : Vous ne pouvez modifier votre adresse qu'une seule fois par an.
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
 
           {/* BOUTONS */}
@@ -302,6 +325,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#FAFAFA',
     color: '#1A1A1A',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFEBEE',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 12,
+  },
+  warningText: {
+    flex: 1,
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 16,
   },
 
   // Buttons

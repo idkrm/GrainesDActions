@@ -3,7 +3,8 @@ import { auth } from "@/firebaseBD/firebaseConfig";
 import { Link, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
@@ -13,6 +14,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordHidden, setPasswordHidden] = useState(true);
 
   const [errors, setErrors] = useState<{
     email?: string;
@@ -80,7 +82,6 @@ export default function LoginScreen() {
   return (
       <AuthContainer>
         <Text style={styles.title}>Connexion</Text>
-
         <AuthInput
             label="Adresse mail"
             value={email}
@@ -93,7 +94,8 @@ export default function LoginScreen() {
             keyboardType="email-address"
         />
         {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
+      
+        <View style={styles.inputContainer}>
         <AuthInput
             label="Mot de passe"
             value={password}
@@ -102,8 +104,19 @@ export default function LoginScreen() {
               clearFieldError("password");
               clearFieldError("general");
             }}
-            secureTextEntry
+            secureTextEntry={passwordHidden}
         />
+        <TouchableOpacity 
+          style={styles.eyeIcon} 
+          onPress={() => setPasswordHidden(!passwordHidden)}
+        >
+        <Ionicons 
+            name={passwordHidden ? "eye-off" : "eye"} 
+            size={24} 
+            color="#4cb05b"
+        />
+        </TouchableOpacity>
+        </View>
         {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
         {/* ✅ Erreur générale (ex: email+mdp incorrect, trop de tentatives, etc.) */}
@@ -159,4 +172,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 10,
   },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
+    height: '95%',
+    top: 6,
+    justifyContent: 'center',
+  },
+  inputContainer: {
+    position: 'relative',
+    width: '100%',
+    alignSelf: 'center'
+  }
 });
