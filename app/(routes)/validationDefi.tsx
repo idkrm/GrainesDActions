@@ -64,7 +64,7 @@ export default function SubmitProofScreen() {
         setFileName(null);
       }
     } catch (error) {
-      // console.error("Erreur Caméra :", error);
+      console.error("Erreur Caméra :", error);
       Alert.alert("Erreur", "Impossible d'ouvrir la caméra.");
     }
   };
@@ -82,7 +82,7 @@ export default function SubmitProofScreen() {
         setFileName(result.assets[0].name);
       }
     } catch (error) {
-      // console.error("Erreur PDF :", error);
+      console.error("Erreur PDF :", error);
       Alert.alert("Erreur", "Impossible de récupérer le fichier.");
     }
   };
@@ -157,7 +157,7 @@ export default function SubmitProofScreen() {
       router.replace("/(tabs)");
 
     } catch (e: any) {
-      // console.error(e);
+      console.error(e);
       Alert.alert("Erreur", e?.message ?? "Impossible de soumettre le défi.");
     } finally {
       setIsSubmitting(false);

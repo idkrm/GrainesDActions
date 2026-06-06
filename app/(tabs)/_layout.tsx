@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants/colors";
 import { Tabs } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, Text, View, Alert } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -12,8 +12,8 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { doc, onSnapshot } from "firebase/firestore";
 
-import { RediNotification } from '../components/notifications/RedirectNotification';
 import * as Notifications from 'expo-notifications';
+import { RediNotification } from '../components/notifications/RedirectNotification';
 
 
 // fonction pour afficher le nombre de points

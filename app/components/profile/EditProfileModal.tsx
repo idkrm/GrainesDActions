@@ -39,7 +39,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
         return; 
       }
       
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(val1)) {
         Alert.alert("Erreur", "Format d'adresse mail invalide.");
         return; 

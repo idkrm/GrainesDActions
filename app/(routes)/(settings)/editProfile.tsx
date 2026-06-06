@@ -16,7 +16,7 @@ import EditModal from '../../components/profile/EditProfileModal';
 
 // IMPORTS FIREBASE
 import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'; // ✅ Ajout de serverTimestamp
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'; // ✅ Ajout de serverTimestamp
 import { auth, db } from "../../firebaseConfig";
 
 import * as Notifications from "expo-notifications";
@@ -77,7 +77,7 @@ export default function EditProfileScreen() {
             }
           }
         } catch (error) {
-          // console.error("Erreur lecture Firestore:", error);
+          console.error("Erreur lecture Firestore:", error);
         }
       }
       setLoading(false);
@@ -160,6 +160,7 @@ export default function EditProfileScreen() {
       await updateDoc(userRef, { is_public: value });
     } catch (error) {
       setPublicEnabled(!value);
+      console.error("Erreur lors de la sauvegarde des préférences", error);
       Alert.alert("Erreur", "Impossible de sauvegarder vos préférences.");
     }
   };
@@ -202,6 +203,7 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       setNotifEnabled(!value);
+      console.error("Erreur lors de la mise à jour vos préférences.", error);
       Alert.alert("Erreur", "Impossible de mettre à jour vos préférences.");
     }
   };

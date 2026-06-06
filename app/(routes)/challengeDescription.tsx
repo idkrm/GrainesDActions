@@ -86,7 +86,7 @@ export default function ChallengeDescription() {
                 });
                 setCategoryMap(mapping);
             } catch (e) {
-                // console.error("Erreur catégories :", e);
+                console.error("Erreur catégories :", e);
             }
         };
         fetchCategories();
@@ -195,7 +195,8 @@ export default function ChallengeDescription() {
             });
             setAlreadyAccepted(false);
             Alert.alert("Annulé", "Tu as abandonné ce défi.");
-        } catch (e) {
+        } catch (error) {
+            console.error("Erreur impossible d'annuler pour le moment.", error);
             Alert.alert("Erreur", "Impossible d'annuler pour le moment.");
         } finally {
             setAccepting(false);

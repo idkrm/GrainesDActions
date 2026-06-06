@@ -158,7 +158,7 @@ export default function TransactionsScreen() {
         setHistoryItems(validItems); 
 
       } catch (error) {
-        // console.error("Erreur récupération historique:", error);
+        console.error("Erreur récupération historique:", error);
       } finally {
         setLoading(false);
       }

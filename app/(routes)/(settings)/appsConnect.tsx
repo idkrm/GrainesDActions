@@ -89,7 +89,7 @@ export default function ConnectAppsScreen() {
         console.log("Erreur Strava:", data);
       }
     } catch (error) {
-      // console.error("Erreur lors de l'échange du token: ", error);
+      console.error("Erreur lors de l'échange du token: ", error);
       Alert.alert("Erreur", "Impossible de finaliser la connexion à Strava.");
     } finally {
       setLoading(false);

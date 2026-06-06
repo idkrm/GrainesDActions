@@ -68,7 +68,7 @@ export default function GestionDefisScreen() {
         setChargement(false);
       },
       (error) => {
-        // console.error("Erreur lecture défis :", error);
+        console.error("Erreur lecture défis :", error);
         setChargement(false);
       }
     );
@@ -83,7 +83,7 @@ export default function GestionDefisScreen() {
         setCategoriesDB(data);
       },
       (error) => {
-        // console.error("Erreur lecture catégories :", error);
+        console.error("Erreur lecture catégories :", error);
       }
     );
 
@@ -165,7 +165,7 @@ export default function GestionDefisScreen() {
       }
       setModalVisible(false);
     } catch (error) {
-      // console.error("Erreur sauvegarde :", error);
+      console.error("Erreur sauvegarde :", error);
       Alert.alert("Erreur", "Impossible de sauvegarder le défi.");
     }
   };
@@ -184,7 +184,7 @@ export default function GestionDefisScreen() {
             try {
               await deleteDoc(doc(db, "Defis", id));
             } catch (error) {
-              // console.error("Erreur suppression :", error);
+              console.error("Erreur suppression :", error);
             }
           }
         }

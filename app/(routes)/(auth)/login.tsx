@@ -1,10 +1,10 @@
 import { COLORS } from '@/constants/colors';
 import { auth } from "@/firebaseBD/firebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AuthButton from '../../components/auth/AuthButton';
 import AuthContainer from '../../components/auth/AuthContainer';
 import AuthInput from '../../components/auth/AuthInput';
@@ -54,12 +54,12 @@ export default function LoginScreen() {
       console.log("Connecté:", userCred.user.uid);
       router.replace("/(tabs)");
     } catch (error: any) {
-      // console.error("Erreur login:", error?.code, error?.message);
+      console.error("Erreur login:", error?.code, error?.message);
 
       const code = error?.code;
       const firebaseErrors: typeof errors = {};
 
-      // ✅ Affichage sous le bon champ
+      // Affichage sous le bon champ
       if (code === "auth/invalid-email") {
         firebaseErrors.email = "Email invalide.";
       } else if (code === "auth/user-not-found") {

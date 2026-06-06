@@ -68,7 +68,7 @@ export default function ShopScreen() {
           setRecompenses(data);
           setChargement(false);
         },
-        // (error) => { console.error(error); setChargement(false); }
+        (error) => { console.error(error); setChargement(false); }
     );
 
     // associations
@@ -193,7 +193,7 @@ export default function ShopScreen() {
         setSelectedReward(null);
 
     } catch (error) {
-        // console.error("Erreur", error);
+        console.error("Erreur", error);
     }
   };
 

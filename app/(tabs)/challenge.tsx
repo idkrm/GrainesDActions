@@ -51,7 +51,7 @@ export default function ChallengeScreen() {
 
         setCategoryMap(mapping);
       } catch (e) {
-        // console.error("Erreur chargement catégories :", e);
+        console.error("Erreur chargement catégories :", e);
       }
     };
 
@@ -67,7 +67,7 @@ export default function ChallengeScreen() {
           setChargement(false);
         },
         (error) => {
-          // console.error("Erreur lecture BD :", error);
+          console.error("Erreur lecture BD :", error);
           setChargement(false);
         }
     );

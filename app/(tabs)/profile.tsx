@@ -1,11 +1,11 @@
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from "expo-notifications";
 import { useRouter } from 'expo-router';
 import { deleteUser, signOut } from "firebase/auth";
 import { deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as Notifications from "expo-notifications";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -51,14 +51,15 @@ export default function ProfileScreen() {
       await Notifications.cancelAllScheduledNotificationsAsync();
       await signOut(auth);
       router.replace("/login"); 
-    } catch (e) {
+    } catch (error) {
+      console.error("Erreur impossible de se déconnecter.", error);
       Alert.alert("Erreur", "Impossible de se déconnecter.");
     }
   };
 
   const handleLogout = () => {
     if (Platform.OS === "web") {
-      const ok = window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
+      const ok = globalThis.confirm("Êtes-vous sûr de vouloir vous déconnecter ?");
       if (ok) void doLogout();
       return;
     }
@@ -90,7 +91,7 @@ export default function ProfileScreen() {
     };
 
     if (Platform.OS === "web") {
-      const ok = window.confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !");
+      const ok = globalThis.confirm("Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible !");
       if (ok) void doDelete();
       return;
     }
