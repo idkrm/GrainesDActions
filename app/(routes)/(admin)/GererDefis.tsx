@@ -151,8 +151,8 @@ export default function GestionDefisScreen() {
       description,
       pourquoi,
       categorie: selectedCategories,
-      co2: parseInt(co2) || 0,
-      difficulte: parseInt(difficulte) || 1,
+      co2: Number.parseInt(co2) || 0,
+      difficulte: Number.parseInt(difficulte) || 1,
       image,
       validation,
     };

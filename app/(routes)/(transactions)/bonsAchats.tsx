@@ -91,7 +91,7 @@ export default function VouchersScreen() {
 
           if (dateAchat.includes('/')) {
             const parts = dateAchat.split('/');
-            const dateObj = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            const dateObj = new Date(Number.parseInt(parts[2]), Number.parseInt(parts[1]) - 1, Number.parseInt(parts[0]));
             dateObj.setMonth(dateObj.getMonth() + 4);
             dateExpiration = dateObj.toLocaleDateString("fr-FR");
           }

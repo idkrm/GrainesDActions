@@ -59,7 +59,7 @@ export default function ShopScreen() {
             let options: MontantDon[] = [];
             if (rawData.montant) {
                 Object.keys(rawData.montant).forEach(key => {
-                    options.push({ montant: parseInt(key), points: rawData.montant[key] });
+                    options.push({ montant: Number.parseInt(key), points: rawData.montant[key] });
                 });
                 options.sort((a, b) => a.montant - b.montant);
             }
@@ -174,12 +174,12 @@ export default function ShopScreen() {
         };
 
         if (typeId === 1 && selectedReward?.id_asso) {
-            dataToSave.id_asso = parseInt(selectedReward.id_asso);
+            dataToSave.id_asso = Number.parseInt(selectedReward.id_asso);
             dataToSave.montant = selectedOption ? selectedOption.montant : 0;
         }
         
         if (typeId === 3 && selectedReward?.id_magasin) {
-            dataToSave.id_magasin = parseInt(selectedReward.id_magasin);
+            dataToSave.id_magasin = Number.parseInt(selectedReward.id_magasin);
             dataToSave.date_utilisation = "";
             dataToSave.montant = selectedOption ? selectedOption.montant : 0;
         }
