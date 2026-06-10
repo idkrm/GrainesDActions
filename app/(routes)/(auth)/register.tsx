@@ -398,6 +398,12 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     textAlign: 'center',
   },
+    subtitle: {
+    fontSize: 13,
+    color: COLORS.textDark,
+    marginBottom: 25,
+    textAlign: 'center',
+  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',

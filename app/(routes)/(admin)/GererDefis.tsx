@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { deleteDoc } from "../../../services/apiRestFirebase";
 import { db } from "../../firebaseConfig";
 
 interface Defi {
@@ -182,7 +183,7 @@ export default function GestionDefisScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, "Defis", id));
+              await deleteDoc("Defis", id);
             } catch (error) {
               console.error("Erreur suppression :", error);
             }
