@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { auth, db } from "../firebaseConfig";
 
-// --- INTERFACES ---
 interface MontantDon {
   montant: number;
   points: number;
@@ -49,7 +48,6 @@ export default function ShopScreen() {
   const [selectedReward, setSelectedReward] = useState<Recompense | null>(null);
   const [selectedOption, setSelectedOption] = useState<MontantDon | null>(null);
 
-  // --- RECUPERATION DES DONNEES ---
   useEffect(() => {
     // recompenses
     const unsubRecompenses = onSnapshot(collection(db, "Recompenses"),
@@ -92,7 +90,6 @@ export default function ShopScreen() {
     return () => { unsubRecompenses(); unsubAssos(); unsubMagasins(); };
   }, []);
 
-  // --- MODALE ---
   const openModal = (item: Recompense) => {
       setSelectedReward(item);
       if (item.optionsCalculees && item.optionsCalculees.length > 0) {
@@ -102,7 +99,6 @@ export default function ShopScreen() {
       }
   };
 
-  // --- PREPARATION DES LISTES ---
   const optionDon = recompenses.find(r => r.nom.toLowerCase().includes('don') && r.optionsCalculees && r.optionsCalculees.length > 0);
   const allDonationOption = optionDon ? optionDon.optionsCalculees : [];
 
@@ -142,7 +138,6 @@ export default function ShopScreen() {
       cartesMagasins[0]
   ].filter(item => item !== undefined);
 
-  // --- ACHAT ---
   const handleBuy = async () => {
     if (!auth.currentUser) {
         Alert.alert("Erreur", "Vous devez être connecté pour échanger vos points.");
@@ -197,7 +192,6 @@ export default function ShopScreen() {
     }
   };
 
-  // --- COMPOSANT DE CARTE DE RÉCOMPENSE ---
   const RewardCard = ({ item }: { item: Recompense }) => (
     <Pressable style={styles.card} onPress={() => openModal(item)}>
       <View style={styles.imagePlaceholder}>
@@ -241,7 +235,6 @@ export default function ShopScreen() {
       <View style={styles.mainContainer}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
             
-            {/* Les plus populaires */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Les plus populaires</Text>
                 <FlatList 
@@ -255,7 +248,6 @@ export default function ShopScreen() {
                 />
             </View>
 
-            {/* Agir pour la planète */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Agir pour la planète</Text>
                 <FlatList 
@@ -269,7 +261,6 @@ export default function ShopScreen() {
                 />
             </View>
 
-            {/* Dons aux associations */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Dons aux associations</Text>
                 <FlatList 
@@ -282,7 +273,6 @@ export default function ShopScreen() {
                 />
             </View>
 
-            {/* Bons d'achat */}
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Bons d’achat</Text>
                 <FlatList 
@@ -298,7 +288,6 @@ export default function ShopScreen() {
 
         </ScrollView>
 
-        {/* --- MODALE DÉTAIL --- */}
         <Modal animationType="fade" transparent={true} visible={!!selectedReward} onRequestClose={() => setSelectedReward(null)} >
             <Pressable style={styles.modalOverlay} onPress={() => setSelectedReward(null)}>
                 <Pressable style={styles.modalContent} onPress={() => {}} >
@@ -349,7 +338,6 @@ export default function ShopScreen() {
                         </View>
                     )}
 
-                    {/* Ligne Infos Prix */}
                     <View style={styles.modalCostRow}>
                        <Text style={styles.modalCostLabel}>Coût total :</Text>
                        <View style={styles.modalPointsBadge}>
@@ -386,8 +374,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // --- SECTIONS ---
-  section: { 
+  section: {
     marginBottom: 35 
   },
   sectionTitle: {
@@ -404,8 +391,7 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: '#999', fontStyle: 'italic', marginLeft: 20 },
 
-  // --- CARTES DE RÉCOMPENSES ---
-  card: { 
+  card: {
     width: 150, 
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -453,7 +439,6 @@ const styles = StyleSheet.create({
   },
   pointsText: { fontSize: 12, fontWeight: "bold", color: "#F57C00" },
 
-  // --- MODALE ---
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -510,7 +495,6 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
   
-  // Options de don / bon
   donationContainer: { width: '100%', marginBottom: 25, alignItems: 'center' },
   donationLabel: { fontSize: 14, fontWeight: '700', marginBottom: 12, color: '#333' },
   donationOptions: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },
@@ -536,7 +520,6 @@ const styles = StyleSheet.create({
   amountText: { fontSize: 15, fontWeight: 'bold', color: '#555' },
   amountTextSelected: { color: 'white' },
 
-  // Recapitulatif du prix
   modalCostRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -554,7 +537,6 @@ const styles = StyleSheet.create({
   },
   modalPointsText: { color: '#E65100', fontWeight: '900', fontSize: 18 },
 
-  // Bouton d'achat
   buyButton: {
     flexDirection: 'row',
     backgroundColor: '#65B369',

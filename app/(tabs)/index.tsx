@@ -25,7 +25,6 @@ import {
 import { getCategoryConfig } from '../components/SharedComponents';
 import { envoyerNotification } from '../components/notifications/GetNotification';
 
-// --- INTERFACES ---
 interface Defi {
   nom?: string;
   co2?: number;
@@ -39,7 +38,6 @@ type DefiCard = {
   categorieId: number | null;
 };
 
-// --- HELPERS ---
 const mondayStartOfWeek = (date: Date) => {
   const d = new Date(date);
   const day = (d.getDay() + 6) % 7;
@@ -64,7 +62,6 @@ export default function HomeScreen() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [greenDays, setGreenDays] = useState<Set<string>>(new Set());
 
-  // --- 1. CHARGEMENT DES NOMS DE CATÉGORIES ---
   useEffect(() => {
     const fetchCategoryNames = async () => {
       try {
@@ -82,7 +79,6 @@ export default function HomeScreen() {
     fetchCategoryNames();
   }, []);
 
-  // --- 2. LOGIQUE CALENDRIER ---
   const weekDates = useMemo(() => {
     const today = new Date();
     const base = new Date(today);
@@ -127,7 +123,6 @@ export default function HomeScreen() {
     });
   }, []);
 
-  // --- 3. DÉFIS EN COURS DYNAMIQUES ---
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -209,7 +204,6 @@ export default function HomeScreen() {
     setTimeout(() => setRefreshing(false), 700);
   }, []);
 
-  // --- 4. NOTIFICATION ---
   useEffect(() => {
     if (loadingDefis) return;
 
@@ -227,7 +221,6 @@ export default function HomeScreen() {
     }
   }, [defisEnCours.length, loadingDefis]); 
 
-  // --- 5. CALCUL DES STATISTIQUES ---
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;

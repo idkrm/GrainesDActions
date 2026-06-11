@@ -76,15 +76,12 @@ export default function RewardPreview() {
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
-            {/* Image du magasin ou de la récompense */}
             {imageUrl && (
                 <Image source={imageUrl} style={styles.image} resizeMode="contain" />
             )}
 
-            {/* Nom de la récompense */}
             <Text style={styles.title}>{recompense.nom ?? "Récompense sans nom"}</Text>
 
-            {/* Coût en points */}
             <View style={styles.badgeRow}>
                 <View style={styles.pointsBadge}>
                     <Text style={styles.pointsText}>
@@ -94,7 +91,6 @@ export default function RewardPreview() {
                 
             </View>
 
-            {/* Description */}
             <Text style={styles.label}>Détails de l'offre</Text>
             <Text style={styles.text}>{recompense.description ?? "Aucune description fournie."}</Text>
         </ScrollView>

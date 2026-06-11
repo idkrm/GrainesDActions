@@ -1,5 +1,4 @@
 export const COLORS = {
-    // La palette de couleur 
     primaryGreen: '#65B369',
     primaryYellow: '#FFCF69',
     primaryBlue: '#BDE2EB',

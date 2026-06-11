@@ -16,7 +16,6 @@ export default function ProfileScreen() {
   });
   const [admin, setAdmin] = useState<boolean>(false);
 
-  // --- RÉCUPÉRATION DES DONNÉES ---
   useEffect(() => {
     const user = auth.currentUser;
 
@@ -45,7 +44,6 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  // --- ACTIONS (Déconnexion & Suppression) ---
   const doLogout = async () => {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
@@ -104,7 +102,6 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-      {/* EN-TÊTE DU PROFIL (AVATAR) */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>{userData.pseudo.charAt(0).toUpperCase()}</Text>
@@ -113,7 +110,6 @@ export default function ProfileScreen() {
         <Text style={styles.emailSubtitle}>{userData.email}</Text>
       </View>
 
-      {/* SECTION 1 : MES INFORMATIONS */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Général</Text>
         
@@ -135,7 +131,6 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* SECTION 2 : MON ACTIVITÉ */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Mon activité</Text>
         
@@ -156,7 +151,6 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      {/* SECTION 3 : ADMIN */}
       {admin && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Administration</Text>
@@ -179,7 +173,6 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* SECTION 4 : ZONE DE DANGER */}
       <View style={styles.dangerZone}>
         <Pressable style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#555" style={{ marginRight: 8 }} />
@@ -207,7 +200,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // --- EN-TÊTE AVATAR ---
   profileHeader: {
     alignItems: 'center',
     marginBottom: 35,
@@ -242,7 +234,6 @@ const styles = StyleSheet.create({
     color: '#888',
   },
 
-  // --- CARTES DE MENU ---
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -287,7 +278,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 
-  // --- ZONE DE DANGER ---
   dangerZone: {
     marginTop: 20,
     alignItems: 'center',

@@ -260,7 +260,6 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ✅ Checklist live mot de passe */}
           <View style={styles.checklistContainer}>
             <Text style={[styles.checkItem, passwordChecks.hasMinLength ? styles.checkOk : styles.checkKo]}>
               {passwordChecks.hasMinLength ? "✓" : "•"} 6 caractères minimum

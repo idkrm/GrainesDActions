@@ -45,7 +45,6 @@ export default function ValidationDefisScreen() {
   const [searchText, setSearchText] = useState("");
   const [selectedItem, setSelectedItem] = useState<ValidationItem | null>(null);
 
-  // 🔥 CHARGEMENT FIRESTORE (State == "En cours")
   useEffect(() => {
     const q = query(
         collection(db, "HistoriqueDefis"),
@@ -114,14 +113,12 @@ export default function ValidationDefisScreen() {
     return () => unsubscribe();
   }, []);
 
-  // 🔎 FILTRAGE
   const filteredValidations = validations.filter(
       (v) =>
           v.defiNom.toLowerCase().includes(searchText.toLowerCase()) ||
           v.username.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  // ✅ VALIDER : State => Valide + ajouter points au user
   const handleValidate = async () => {
     if (!selectedItem) return;
 
@@ -156,7 +153,6 @@ export default function ValidationDefisScreen() {
     }
   };
 
-  // ❌ REFUSER : juste changer State
   const handleReject = async () => {
     if (!selectedItem) return;
 
@@ -186,7 +182,6 @@ export default function ValidationDefisScreen() {
   const renderItem = ({ item }: { item: ValidationItem }) => (
       <Pressable style={styles.listItem} onPress={() => setSelectedItem(item)}>
         
-        {/* Avatar Icon */}
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{item.username.charAt(0).toUpperCase()}</Text>
         </View>
@@ -198,7 +193,6 @@ export default function ValidationDefisScreen() {
           </Text>
         </View>
 
-        {/* Info Right */}
         <View style={styles.itemRight}>
            <Text style={styles.dateText}>{item.dateSoumission}</Text>
            <View style={styles.pointsBadge}>
@@ -211,7 +205,6 @@ export default function ValidationDefisScreen() {
 
   return (
       <View style={styles.container}>
-        {/* HEADER */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="black" />
@@ -219,7 +212,6 @@ export default function ValidationDefisScreen() {
           
         </View>
 
-        {/* BARRE DE RECHERCHE */}
         <Text style={styles.headerTitle}>Validation</Text>
         <View style={styles.searchContainer}>
           <View style={styles.searchBar}>
@@ -239,7 +231,6 @@ export default function ValidationDefisScreen() {
           </View>
         </View>
 
-        {/* LISTE */}
         {chargement ? (
             <View style={styles.center}>
               <ActivityIndicator size="large" color="#65B369" />
@@ -261,7 +252,6 @@ export default function ValidationDefisScreen() {
             />
         )}
 
-        {/* MODAL DE VALIDATION */}
         <Modal
             animationType="fade"
             transparent
@@ -271,7 +261,6 @@ export default function ValidationDefisScreen() {
           <Pressable style={styles.modalOverlay} onPress={() => setSelectedItem(null)}>
             <Pressable style={styles.modalContent} onPress={() => {}}>
               
-              {/* Header Modal */}
               <View style={styles.modalHeader}>
                  <Text style={styles.modalTitle} numberOfLines={1}>{selectedItem?.defiNom}</Text>
                  <Pressable style={styles.closeButton} onPress={() => setSelectedItem(null)} hitSlop={10}>
@@ -279,7 +268,6 @@ export default function ValidationDefisScreen() {
                  </Pressable>
               </View>
 
-              {/* Info Modal */}
               <View style={styles.modalInfoRow}>
                  <View style={styles.modalUserBox}>
                     <Ionicons name="person-outline" size={16} color="#666" style={{marginRight: 6}} />
@@ -291,7 +279,6 @@ export default function ValidationDefisScreen() {
                  </View>
               </View>
 
-              {/* IMAGE SÉLECTIONNÉE */}
               <View style={styles.modalImageContainer}>
                 {selectedItem?.imageUri ? (
                   <Image source={{ uri: selectedItem.imageUri }} style={styles.modalImage} resizeMode="cover" />
@@ -303,7 +290,6 @@ export default function ValidationDefisScreen() {
                 )}
               </View>
 
-              {/* BOUTONS ACTIONS */}
               <View style={styles.actionButtonsRow}>
                 <Pressable style={[styles.actionButton, styles.buttonReject]} onPress={handleReject}>
                   <Ionicons name="close-circle-outline" size={20} color="#E53935" style={{marginRight: 6}} />
@@ -326,7 +312,7 @@ export default function ValidationDefisScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA", // Fond Soft UI
+    backgroundColor: "#FAFAFA",
     paddingTop: 50,
   },
   center: {
@@ -335,7 +321,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // --- HEADER ---
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -351,7 +336,6 @@ const styles = StyleSheet.create({
     color: "#1A1A1A",
   },
 
-  // --- BARRE DE RECHERCHE ---
   searchContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -375,7 +359,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
-  // --- LISTE ---
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
@@ -442,7 +425,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   
-  // --- EMPTY STATE ---
   emptyContainer: {
     marginTop: 60,
     alignItems: 'center',
@@ -463,7 +445,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // --- MODAL ---
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -553,7 +534,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Boutons du modal
   actionButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -16,7 +16,6 @@ import * as Notifications from 'expo-notifications';
 import { RediNotification } from '../components/notifications/RedirectNotification';
 
 
-// fonction pour afficher le nombre de points
 const PointsBadge = () => {
     const [points, setPoints] = useState<number>(0);
 
@@ -70,15 +69,13 @@ const TabIcon = ({ focused, IconComponent, iconName }: any) => {
     );
 };
 
-// -- Configuration Notification --
-
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true, // Affiche la notif
-    shouldPlaySound: false, 
-    shouldSetBadge: true, // Affiche l'icône au dessus de l'app
-    shouldShowBanner: true, // Affiche la notif en haut de l'écran
-    shouldShowList: false, 
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: false,
   }),
 });
 
@@ -90,7 +87,6 @@ export default function RootLayout() {
 
         <Tabs
             screenOptions={{
-                // --- BARRE DE NAVIGATION (BOTTOM TAB) ---
                 tabBarShowLabel: false,
                 tabBarStyle: {
                     backgroundColor: '#ffffff',
@@ -106,7 +102,6 @@ export default function RootLayout() {
                     elevation: 10, 
                 },
 
-                // --- HEADER (EN-TÊTE) ---
                 headerTitleAlign: 'left',
                 headerTitleStyle: {
                     fontSize: 24,
@@ -173,7 +168,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-    // Style du badge de points
     badgeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -193,7 +187,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
 
-    // Style des icônes de la barre de navigation
     iconWrapper: {
         borderRadius: 20,
         height: 46,

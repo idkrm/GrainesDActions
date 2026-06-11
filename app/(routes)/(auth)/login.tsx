@@ -119,7 +119,6 @@ export default function LoginScreen() {
         </View>
         {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
-        {/* ✅ Erreur générale (ex: email+mdp incorrect, trop de tentatives, etc.) */}
         {!!errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 
         <Link href="/forgotPassword" asChild>
@@ -165,7 +164,6 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
     fontSize: 16,
   },
-  // ✅ même style que register
   errorText: {
     color: "#D32F2F",
     fontSize: 12,

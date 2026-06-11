@@ -11,19 +11,16 @@ export default function AuthContainer({ children }: { children: React.ReactNode 
     >
       <View style={styles.content}>
         <View style={styles.card}>
-          {/* La décoration en haut (le demi-cercle) */}
           <View style={styles.headerDecoration} />
           
-          {/* Le logo */}
           <View style={styles.logoContainer}>
             <Image 
               source={require('../../../assets/images/logo.png')} 
               style={styles.logoImage}
-              resizeMode="contain" // Garde les proportions de l'image
+              resizeMode="contain"
             />
           </View>
 
-          {/* Le contenu */}
           <View style={styles.formContent}>
             {children}
           </View>

@@ -99,7 +99,6 @@ export default function ConnectAppsScreen() {
   return (
     <View style={styles.container}>
       
-      {/* HEADER TOP (Bouton retour) */}
       <View style={styles.headerTop}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
           <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
@@ -108,13 +107,11 @@ export default function ConnectAppsScreen() {
 
       <View style={styles.content}>
         
-        {/* TITRES */}
         <View style={styles.headerTitles}>
           <Text style={styles.title}>Applications</Text>
           <Text style={styles.subtitle}>Synchronise tes activités sportives</Text>
         </View>
 
-        {/* ENCART D'INFORMATION */}
         <View style={styles.infoBox}>
           <Ionicons name="information-circle" size={24} color="#65B369" style={{ marginRight: 10 }} />
           <Text style={styles.infoText}>
@@ -122,8 +119,7 @@ export default function ConnectAppsScreen() {
           </Text>
         </View>
 
-        {/* BOUTON STRAVA */}
-        <Pressable 
+        <Pressable
             style={[styles.appCard, loading && { opacity: 0.7 }]} 
             disabled={!request || loading}
             onPress={() => promptAsync()}
@@ -148,14 +144,13 @@ export default function ConnectAppsScreen() {
           )}
         </Pressable>
 
-        {/* BOUTON FITBIT */}
-        <Pressable 
+        <Pressable
           style={styles.appCard} 
           onPress={() => Alert.alert("Patience...", "L'intégration Fitbit arrive très bientôt !")}
         >
           <View style={[styles.logoWrapper, { backgroundColor: '#E0F7FA' }]}>
             <Image
-              style={[styles.logoImage, { width: 24, height: 24 }]} // Légèrement réduit pour fitbit
+              style={[styles.logoImage, { width: 24, height: 24 }]}
               source={{ uri: 'https://companieslogo.com/img/orig/FIT.defunct-1627f32e.png?t=1720244491' }}
               resizeMode="contain"
             />
@@ -177,14 +172,13 @@ export default function ConnectAppsScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#FAFAFA', // Fond Soft UI 
+    backgroundColor: '#FAFAFA',
     paddingTop: 50,
   },
   content: { 
     paddingHorizontal: 20, 
   },
   
-  // --- HEADER ---
   headerTop: {
     paddingHorizontal: 20,
     marginBottom: 10,
@@ -208,10 +202,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // --- ENCART INFO ---
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#E8F5E9', // Vert très clair
+    backgroundColor: '#E8F5E9',
     padding: 15,
     borderRadius: 16,
     marginBottom: 30,
@@ -226,7 +219,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // --- CARTES APPLICATIONS ---
   appCard: {
     flexDirection: 'row', 
     alignItems: 'center',
@@ -234,7 +226,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 15,
     marginBottom: 15,
-    // Ombres Soft UI
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
