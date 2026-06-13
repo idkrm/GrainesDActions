@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { addDoc, collection, doc, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +15,7 @@ import {
   TextInput,
   View
 } from "react-native";
-import { deleteDoc, updateDoc } from "../../../services/apiRestFirebase";
+import { deleteDoc, updateDoc, postDoc } from "../../../services/apiRestFirebase";
 import { db } from "../../firebaseConfig";
 
 interface Defi {
@@ -160,7 +160,7 @@ export default function GestionDefisScreen() {
       if (editingId) {
         await updateDoc("Defis", editingId, dataToSave);
       } else {
-        await addDoc(collection(db, "Defis"), dataToSave);
+        await postDoc("Defis", dataToSave);
       }
       setModalVisible(false);
     } catch (error) {

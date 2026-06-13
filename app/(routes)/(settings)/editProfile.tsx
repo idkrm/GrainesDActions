@@ -15,8 +15,10 @@ import {
 import EditModal from '../../components/profile/EditProfileModal';
 
 import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
+import { getDoc, updateDoc } from "../../../services/apiRestFirebase";
+
 
 import * as Notifications from "expo-notifications";
 
@@ -53,8 +55,7 @@ export default function EditProfileScreen() {
         }));
 
         try {
-          const docRef = doc(db, "Users", currentUser.uid);
-          const docSnap = await getDoc(docRef);
+          const docSnap = await getDoc("Users", currentUser.uid);
 
           if (docSnap.exists()) {
             const data = docSnap.data();
@@ -93,15 +94,13 @@ export default function EditProfileScreen() {
     if (!currentUser || !activeField) return;
 
     try {
-      const userRef = doc(db, "Users", currentUser.uid);
-
       if (activeField === 'pseudo') {
-        await updateDoc(userRef, { pseudo: newValue });
+        await updateDoc("Users", currentUser.uid, { pseudo: newValue });
         setUserData(prev => ({ ...prev, pseudo: newValue }));
       } 
       else if (activeField === 'email') {
          await updateEmail(currentUser, newValue); 
-         await updateDoc(userRef, { email: newValue });
+         await updateDoc("Users", currentUser.uid, { email: newValue });
          setUserData(prev => ({ ...prev, email: newValue }));
          Alert.alert("Succès", "Email modifié avec succès !");
       }
@@ -121,7 +120,7 @@ export default function EditProfileScreen() {
           }
         }
 
-        await updateDoc(userRef, { 
+        await updateDoc("Users", currentUser.uid, { 
             adresse: newValue, 
             last_address_update: serverTimestamp() 
         });
@@ -150,8 +149,7 @@ export default function EditProfileScreen() {
     setPublicEnabled(value);
 
     try {
-      const userRef = doc(db, "Users", currentUser.uid);
-      await updateDoc(userRef, { is_public: value });
+      await updateDoc("Users", currentUser.uid, { is_public: value });
     } catch (error) {
       setPublicEnabled(!value);
       console.error("Erreur lors de la sauvegarde des préférences", error);
@@ -166,7 +164,6 @@ export default function EditProfileScreen() {
     setNotifEnabled(value);
 
     try {
-      const userRef = doc(db, "Users", currentUser.uid);
 
       if (value) {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -178,7 +175,7 @@ export default function EditProfileScreen() {
         }
 
         if (finalStatus === 'granted') {
-          await updateDoc(userRef, { notifications_enabled: true });
+          await updateDoc("Users", currentUser.uid, { notifications_enabled: true });
         } else {
           setNotifEnabled(false); 
           Alert.alert(
@@ -191,7 +188,7 @@ export default function EditProfileScreen() {
           );
         }
       } else {
-        await updateDoc(userRef, { notifications_enabled: false });
+        await updateDoc("Users", currentUser.uid, { notifications_enabled: false });
         await Notifications.cancelAllScheduledNotificationsAsync();
       }
     } catch (error) {

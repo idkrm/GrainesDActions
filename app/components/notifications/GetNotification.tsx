@@ -30,7 +30,7 @@ export const envoyerNotification = async () => {
         },
         trigger: {
             type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-            seconds: 60,
+            seconds: 80,
             repeats: true
         }
     });
