@@ -59,7 +59,6 @@ export default function HistoryScreen() {
     return new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
   }, [currentYear, currentMonth]);
 
-  // ---- Grille calendrier (42 cases = 6 semaines) ----
   const calendarCells = useMemo(() => {
     const firstDay = new Date(currentYear, currentMonth, 1);
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -79,7 +78,6 @@ export default function HistoryScreen() {
     return cells;
   }, [currentYear, currentMonth]);
 
-  // ---- 1) Charger les stats globales (Total + ce mois affiché) ----
   useEffect(() => {
     const loadCounts = async () => {
       try {
@@ -128,7 +126,6 @@ export default function HistoryScreen() {
     loadCounts();
   }, [startOfDisplayedMonth, endOfDisplayedMonth]);
 
-  // ---- 2) Charger les jours verts du mois affiché ----
   useEffect(() => {
     const loadCalendarGreenDays = async () => {
       try {
@@ -197,7 +194,6 @@ export default function HistoryScreen() {
   return (
       <View style={styles.mainContainer}>
         
-        {/* HEADER TOP (Bouton retour) */}
         <View style={styles.headerTop}>
           <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
             <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
@@ -206,14 +202,11 @@ export default function HistoryScreen() {
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           
-          {/* TITRES */}
           <View style={styles.headerTitles}>
             <Text style={styles.title}>Mon historique</Text>
           </View>
 
-          {/* SECTION 1 : LES CARTES STATS */}
           <View style={styles.statsContainer}>
-            {/* Carte Ce mois-ci */}
             <View style={styles.statCard}>
               <View style={[styles.iconWrapper, { backgroundColor: '#FFF8E1' }]}>
                 <Ionicons name="calendar-outline" size={24} color="#FBC02D" />
@@ -226,7 +219,6 @@ export default function HistoryScreen() {
               )}
             </View>
 
-            {/* Carte Total */}
             <View style={styles.statCard}>
               <View style={[styles.iconWrapper, { backgroundColor: '#FFEBEE' }]}>
                 <Ionicons name="flame-outline" size={24} color="#E53935" />
@@ -240,10 +232,8 @@ export default function HistoryScreen() {
             </View>
           </View>
 
-          {/* SECTION 2 : CALENDRIER */}
           <View style={styles.calendarCard}>
             
-            {/* Sélecteur de mois */}
             <View style={styles.monthSelector}>
               <Pressable onPress={goPrevMonth} hitSlop={15} style={styles.arrowButton}>
                 <Ionicons name="chevron-back" size={20} color="#555" />
@@ -258,14 +248,12 @@ export default function HistoryScreen() {
               </Pressable>
             </View>
 
-            {/* Jours de la semaine */}
             <View style={styles.daysHeader}>
               {daysOfWeek.map((day, index) => (
                   <Text key={index} style={styles.dayHeaderText}>{day}</Text>
               ))}
             </View>
 
-            {/* Grille des jours */}
             {loadingCalendar ? (
                 <View style={styles.loadingCalendarBox}>
                   <ActivityIndicator size="large" color="#65B369" />
@@ -314,7 +302,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // --- HEADER ---
   headerTop: {
     marginLeft: 15,
     marginBottom: 10,
@@ -338,7 +325,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // --- CARTES STATS ---
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -381,7 +367,6 @@ const styles = StyleSheet.create({
     color: '#888',
   },
 
-  // --- CARTE CALENDRIER ---
   calendarCard: {
     backgroundColor: '#fff',
     borderRadius: 24,

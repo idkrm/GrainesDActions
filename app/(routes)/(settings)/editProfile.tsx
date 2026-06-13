@@ -14,9 +14,8 @@ import {
 } from 'react-native';
 import EditModal from '../../components/profile/EditProfileModal';
 
-// IMPORTS FIREBASE
 import { onAuthStateChanged, updateEmail, updatePassword } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'; // ✅ Ajout de serverTimestamp
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
 
 import * as Notifications from "expo-notifications";
@@ -31,7 +30,6 @@ export default function EditProfileScreen() {
   const [publicEnabled, setPublicEnabled] = useState(true);
   const [notifEnabled, setNotifEnabled] = useState(false);
 
-  // Données utilisateur (✅ Ajout nom, prenom, adresse, last_address_update)
   const [userData, setUserData] = useState({
     nom: '',
     prenom: '',
@@ -46,7 +44,6 @@ export default function EditProfileScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | 'adresse' | null>(null);
 
-  // --- CHARGEMENT DES DONNÉES ---
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -91,7 +88,6 @@ export default function EditProfileScreen() {
     setModalVisible(true);
   };
 
-  // --- SAUVEGARDE DES DONNEES (MODAL) ---
   const handleSaveField = async (newValue: string) => {
     const currentUser = auth.currentUser;
     if (!currentUser || !activeField) return;
@@ -113,7 +109,6 @@ export default function EditProfileScreen() {
         await updatePassword(currentUser, newValue); 
         Alert.alert("Succès", "Votre mot de passe a été modifié.");
       }
-      // ✅ LOGIQUE DE CHANGEMENT D'ADRESSE (1 FOIS PAR AN)
       else if (activeField === 'adresse') {
         if (userData.last_address_update) {
           const lastUpdateDate = userData.last_address_update.toDate ? userData.last_address_update.toDate() : new Date(userData.last_address_update);
@@ -148,7 +143,6 @@ export default function EditProfileScreen() {
     }
   };
 
-  // --- SAUVEGARDE DU SWITCH ---
   const toggleSwitch = async (value: boolean) => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
@@ -165,7 +159,6 @@ export default function EditProfileScreen() {
     }
   };
 
-  // --- ACTIVATION DES NOTIFICATIONS ---
   const activateSwitch = async (value: boolean) => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
@@ -219,7 +212,6 @@ export default function EditProfileScreen() {
   return (
     <View style={styles.mainContainer}>
 
-      {/* HEADER AVEC BOUTON RETOUR */}
       <View style={styles.headerTop}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
           <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
@@ -228,18 +220,15 @@ export default function EditProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* TITRES */}
         <View style={styles.headerTitles}>
           <Text style={styles.title}>Mon profil</Text>
           <Text style={styles.subtitle}>Gère tes informations personnelles</Text>
         </View>
 
-        {/* SECTION PROFIL */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Identité & Contact</Text>
           <View style={styles.card}>
 
-            {/* ✅ Ligne Nom (Non modifiable) */}
             <View style={styles.fieldRow}>
               <View style={[styles.iconWrapper, { backgroundColor: '#ECEFF1' }]}>
                 <Ionicons name="person" size={20} color="#78909C" />
@@ -252,7 +241,6 @@ export default function EditProfileScreen() {
 
             <View style={styles.divider} />
 
-            {/* ✅ Ligne Prénom (Non modifiable) */}
             <View style={styles.fieldRow}>
               <View style={[styles.iconWrapper, { backgroundColor: '#ECEFF1' }]}>
                 <Ionicons name="person" size={20} color="#78909C" />
@@ -265,7 +253,6 @@ export default function EditProfileScreen() {
 
             <View style={styles.divider} />
 
-            {/* ✅ Ligne Adresse Postale (Modifiable) */}
             <Pressable style={styles.fieldRow} onPress={() => openEditModal('adresse')}>
               <View style={[styles.iconWrapper, { backgroundColor: '#F3E5F5' }]}>
                 <Ionicons name="home-outline" size={20} color="#8E24AA" />
@@ -280,7 +267,6 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        {/* SECTION CONNEXION */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Données du compte</Text>
           <View style={styles.card}>
@@ -325,7 +311,6 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        {/* SECTION CONFIDENTIALITÉ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Confidentialité</Text>
           <View style={styles.card}>
@@ -352,7 +337,6 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        {/* SECTION NOTIFICATIONS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>
         <View style={styles.card}>

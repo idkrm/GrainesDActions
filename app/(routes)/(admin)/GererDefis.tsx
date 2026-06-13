@@ -23,14 +23,13 @@ interface Defi {
   nom: string;
   description: string;
   pourquoi?: string;
-  categorie: string[]; // <-- Contient désormais les IDs des catégories
+  categorie: string[];
   co2: number;
   difficulte: number;
   image: string;
   validation: boolean;
 }
 
-// Nouvelle interface pour ta collection Categories
 interface CategorieDB {
   id: string;
   nom: string;
@@ -40,7 +39,7 @@ export default function GestionDefisScreen() {
   const router = useRouter();
 
   const [defis, setDefis] = useState<Defi[]>([]);
-  const [categoriesDB, setCategoriesDB] = useState<CategorieDB[]>([]); // <-- Stocke les catégories de Firebase
+  const [categoriesDB, setCategoriesDB] = useState<CategorieDB[]>([]);
 
   const [chargement, setChargement] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -56,7 +55,6 @@ export default function GestionDefisScreen() {
   const [validation, setValidation] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // --- CHARGEMENT DES DONNÉES (DÉFIS + CATÉGORIES) ---
   useEffect(() => {
     const unsubDefis = onSnapshot(
       collection(db, "Defis"),
@@ -171,7 +169,6 @@ export default function GestionDefisScreen() {
     }
   };
 
-  // --- SUPPRIMER ---
   const handleDelete = (id: string, nom: string) => {
     Alert.alert(
       "Supprimer le défi",
@@ -193,7 +190,6 @@ export default function GestionDefisScreen() {
     );
   };
 
-  // --- RENDU D'UNE LIGNE DE DÉFI ---
   const renderItem = ({ item }: { item: Defi }) => {
     const categoryNames = Array.isArray(item.categorie)
       ? item.categorie.map(id => categoriesDB.find(c => c.id === id)?.nom).filter(Boolean).join(", ")

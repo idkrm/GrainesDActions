@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import TransactionCard from '../../components/profile/transactionCard';
 
-// IMPORTS FIREBASE
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
 
@@ -120,7 +119,6 @@ export default function VouchersScreen() {
     fetchVouchers();
   }, []);
 
-  // --- RENDU EN COURS DE CHARGEMENT ---
   if (loading) {
     return (
       <View style={[styles.mainContainer, styles.center]}>
@@ -129,7 +127,6 @@ export default function VouchersScreen() {
     );
   }
 
-  // --- FONCTION POUR GÉNÉRER DES BARRES ---
   const renderBarcodePattern = (code: string) => {
     return code.split('').map((char, index) => {
       const charCode = char.charCodeAt(0);
@@ -142,11 +139,9 @@ export default function VouchersScreen() {
     });
   };
 
-  // --- RENDU FINAL ---
   return (
     <View style={styles.mainContainer}>
       
-      {/* HEADER TOP (Bouton retour) */}
       <View style={styles.headerTop}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
@@ -155,13 +150,11 @@ export default function VouchersScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* TITRES */}
         <View style={styles.headerTitles}>
           <Text style={styles.title}>Mes bons d'achats</Text>
           <Text style={styles.subtitle}>Utilise tes récompenses en magasin</Text>
         </View>
 
-        {/* LISTE DES BONS */}
         {vouchers.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="ticket-outline" size={50} color="#ccc" style={{ marginBottom: 15 }} />
@@ -237,8 +230,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40 
   },
 
-  // --- HEADER ---
-  headerTop: { 
+  headerTop: {
     paddingHorizontal: 20, 
     marginBottom: 10 
   },
@@ -261,9 +253,8 @@ const styles = StyleSheet.create({
     marginTop: 4 
   },
 
-  // --- LISTE BONS ---
-  vouchersList: { 
-    gap: 15 // Espacement entre les cartes
+  vouchersList: {
+    gap: 15
   },
   cardWrapper: { 
     shadowColor: "#000", 
@@ -274,8 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  // --- EMPTY STATE ---
-  emptyContainer: { 
+  emptyContainer: {
     marginTop: 60, 
     alignItems: 'center', 
     backgroundColor: '#fff', 
@@ -294,8 +284,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // --- MODAL CODE BARRE ---
-  modalOverlay: { 
+  modalOverlay: {
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 

@@ -9,9 +9,6 @@ import {
   View,
 } from "react-native";
 
-// ==========================================
-// CATÉGORIES
-// ==========================================
 export const getCategoryConfig = (category: unknown) => {
   if (typeof category !== "string") {
     return { icon: "leaf-outline", color: "#65B369", bg: "#E8F5E9" };
@@ -58,9 +55,6 @@ export const getCategoryConfig = (category: unknown) => {
   return { icon: "leaf-outline", color: "#65B369", bg: "#E8F5E9" };
 };
 
-// ==========================================
-// BARRE DE RECHERCHE
-// ==========================================
 interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
@@ -97,9 +91,6 @@ export const SearchBar = ({
     </View>
 );
 
-// ==========================================
-// CARTE DE DÉFI
-// ==========================================
 interface DefiCardProps {
   item: {
     categorie?: unknown;
@@ -172,7 +163,6 @@ export const DefiCard = ({ item, onPress, cardWidth }: DefiCardProps) => {
   );
 };
 
-// --- STYLES DES COMPOSANTS ---
 const styles = StyleSheet.create({
   searchHeader: {
     flexDirection: "row",

@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import TransactionCard from '../../components/profile/transactionCard';
 
-// IMPORTS FIREBASE
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from "../../firebaseConfig";
 
@@ -139,8 +138,7 @@ export default function TransactionsScreen() {
           return {
             id: item.id,
             title: nom, 
-            // Couleurs pastels Soft UI selon le type d'action
-            color: isDon || isArbre ? '#E8F5E9' : '#F5F5F5', 
+            color: isDon || isArbre ? '#E8F5E9' : '#F5F5F5',
             date_achat: item.date_achat,
             lines: displayLines.filter(Boolean) as string[]
           };
@@ -178,7 +176,6 @@ export default function TransactionsScreen() {
   return (
     <View style={styles.mainContainer}>
       
-      {/* HEADER TOP (Bouton retour) */}
       <View style={styles.headerTop}>
         <Pressable onPress={() => router.back()} style={styles.backButton} hitSlop={15}>
           <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
@@ -187,13 +184,11 @@ export default function TransactionsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* TITRES */}
         <View style={styles.headerTitles}>
           <Text style={styles.title}>Historique</Text>
           <Text style={styles.subtitle}>Retrouve toutes tes bonnes actions</Text>
         </View>
 
-        {/* LISTE DES TRANSACTIONS */}
         {historyItems.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="time-outline" size={50} color="#ccc" style={{ marginBottom: 15 }} />
@@ -236,7 +231,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // --- HEADER ---
   headerTop: {
     paddingHorizontal: 20,
     marginBottom: 10,
@@ -260,7 +254,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // --- LISTE ---
   listContainer: {
     gap: 15,
   },
@@ -273,7 +266,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  // --- EMPTY STATE ---
   emptyContainer: {
     marginTop: 60,
     alignItems: 'center',

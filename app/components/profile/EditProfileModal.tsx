@@ -8,8 +8,7 @@ type EditModalProps = {
   visible: boolean;
   onClose: () => void;
   onSave: (newValue: string) => void;
-  // ✅ Ajout de "adresse" aux choix possibles
-  field: 'pseudo' | 'email' | 'password' | 'adresse' | null; 
+  field: 'pseudo' | 'email' | 'password' | 'adresse' | null;
   currentValue: string;
 };
 
@@ -97,8 +96,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
     } 
   
     else {
-      // Pour le Pseudo ET l'Adresse Postale
-      if (!val1 || val1.trim().length === 0) {
+        if (!val1 || val1.trim().length === 0) {
         Alert.alert("Erreur", "Ce champ ne peut pas être vide.");
         return;
       }
@@ -113,7 +111,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
       case 'pseudo': return { icon: "at-outline", color: "#65B369", bg: "#E8F5E9" };
       case 'email': return { icon: "mail-outline", color: "#4FC3F7", bg: "#E1F5FE" };
       case 'password': return { icon: "lock-closed-outline", color: "#F57C00", bg: "#FFF3E0" };
-      case 'adresse': return { icon: "home-outline", color: "#8E24AA", bg: "#F3E5F5" }; // ✅ Icône Adresse
+      case 'adresse': return { icon: "home-outline", color: "#8E24AA", bg: "#F3E5F5" };
       default: return { icon: "create-outline", color: "#666", bg: "#F5F5F5" };
     }
   };
@@ -123,7 +121,7 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
       case 'pseudo': return "Modifier le pseudo";
       case 'email': return "Modifier l'adresse mail";
       case 'password': return "Changer de mot de passe";
-      case 'adresse': return "Modifier l'adresse"; // ✅ Titre Adresse
+      case 'adresse': return "Modifier l'adresse";
       default: return "Modifier";
     }
   };
@@ -140,14 +138,12 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
           
-          {/* ICON HEADER */}
           <View style={[styles.iconContainer, { backgroundColor: headerConfig.bg }]}>
             <Ionicons name={headerConfig.icon as any} size={28} color={headerConfig.color} />
           </View>
           
           <Text style={styles.modalTitle}>{getTitle()}</Text>
 
-          {/* INPUTS */}
           <View style={styles.inputsWrapper}>
             {field === 'password' && (
               <>
@@ -218,7 +214,6 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
               </>
             )}
 
-            {/* ✅ CHAMP ADRESSE AVEC AVERTISSEMENT */}
             {field === 'adresse' && (
               <>
                 <Text style={styles.inputLabel}>Où envoyer tes futures récompenses ?</Text>
@@ -239,7 +234,6 @@ export default function EditModal({ visible, onClose, onSave, field, currentValu
             )}
           </View>
 
-          {/* BOUTONS */}
           <View style={styles.buttonContainer}>
             <Pressable 
               style={[styles.button, styles.buttonCancel]} 
@@ -303,7 +297,6 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
 
-  // Inputs
   inputsWrapper: {
     width: '100%',
     marginBottom: 30,
@@ -341,7 +334,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // Buttons
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',

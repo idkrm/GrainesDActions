@@ -12,7 +12,6 @@ import {
     View
 } from "react-native";
 
-// CORRECTION DE L'IMPORT : On utilise le même fichier pour auth et database
 import { auth, db } from "@/firebaseBD/firebaseConfig";
 import {
     arrayRemove,
@@ -75,7 +74,6 @@ export default function ChallengeDescription() {
     const [accepting, setAccepting] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
 
-    // 1) Charger les noms des catégories pour l'affichage des badges
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -92,7 +90,6 @@ export default function ChallengeDescription() {
         fetchCategories();
     }, []);
 
-    // 2) Charger le détail du défi
     useEffect(() => {
         const loadDefi = async () => {
             try {
@@ -115,7 +112,6 @@ export default function ChallengeDescription() {
         loadDefi();
     }, [defiId]);
 
-    // 3) Vérifier si l'utilisateur a déjà accepté ce défi
     useEffect(() => {
         const checkAlreadyAccepted = async () => {
             try {
@@ -143,7 +139,6 @@ export default function ChallengeDescription() {
         checkAlreadyAccepted();
     }, [defiId]);
 
-    // 4) Accepter un défi (Transaction Firestore)
     const handleAccept = async () => {
         try {
             if (!defiId) return;
@@ -179,7 +174,6 @@ export default function ChallengeDescription() {
         }
     };
 
-    // 5) Abandonner un défi
     const handleCancel = async () => {
         if (!defiId) return;
         const user = auth.currentUser;
@@ -224,7 +218,6 @@ export default function ChallengeDescription() {
         );
     }
 
-    // Image
     const imageSource = defi.image && IMAGES_LOCALES[defi.image] 
         ? IMAGES_LOCALES[defi.image] 
         : (defi.image?.startsWith('http') ? { uri: defi.image } : null);
@@ -232,7 +225,6 @@ export default function ChallengeDescription() {
     return (
         <View style={styles.mainContainer}>
             
-            {/* HEADER TOP (Bouton retour) */}
             <View style={styles.headerTop}>
                 <Pressable onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={28} color="#1A1A1A" />
@@ -241,7 +233,6 @@ export default function ChallengeDescription() {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 
-                {/* TITRES */}
                 <View style={styles.headerTitles}>
                     <Text style={styles.title}>Détail du défi</Text>
                 </View>
@@ -258,13 +249,11 @@ export default function ChallengeDescription() {
 
                 <Text style={styles.defiName}>{defi.nom}</Text>
 
-                {/* BADGE DE RÉCOMPENSE */}
                 <View style={styles.rewardBadge}>
                     <MaterialCommunityIcons name="star-circle" size={24} color="#F57C00" />
                     <Text style={styles.rewardText}>+{((defi.difficulte ?? 0) * 10)} pts à gagner</Text>
                 </View>
 
-                {/* CHIPS (CATÉGORIES & DIFFICULTÉ) */}
                 <View style={styles.badgeRow}>
                     <View style={styles.badge}>
                         <Ionicons name="bar-chart-outline" size={14} color="#666" />
@@ -278,7 +267,6 @@ export default function ChallengeDescription() {
                         </View>
                     )}
 
-                    {/* Affichage des noms de catégories au lieu des IDs */}
                     {defi.categorie?.map((catId, index) => (
                         <View key={index} style={styles.badge}>
                             <Text style={styles.badgeText}>{categoryMap[catId] || "Catégorie"}</Text>
@@ -286,7 +274,6 @@ export default function ChallengeDescription() {
                     ))}
                 </View>
 
-                {/* SECTIONS DE TEXTE */}
                 <View style={styles.textCard}>
                     <Text style={styles.sectionTitle}>Description</Text>
                     <Text style={styles.descriptionText}>{defi.description}</Text>
@@ -299,7 +286,6 @@ export default function ChallengeDescription() {
                 <View style={{ height: 120 }} />
             </ScrollView>
 
-            {/* FOOTER ACTIONS FLOATING */}
             {!checkingUser && (
                 <View style={styles.footerContainer}>
                     {isAdmin ? (
