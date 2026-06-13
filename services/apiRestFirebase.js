@@ -28,7 +28,8 @@ export const getCollection = async (collection) => {
 
 export const updateDoc = async (collection, docId, data) => {
   const token = await getToken();
-  const res = await fetch(`${BASE_URL}/${collection}/${docId}`, {
+  const fields = Object.keys(data).map(d => `updateMask.fieldPaths=${d}`).join('&');
+  const res = await fetch(`${BASE_URL}/${collection}/${docId}?${fields}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -69,6 +70,13 @@ const formatFields = (obj) => {
     if (typeof val === 'string') result[key] = { stringValue: val };
     else if (typeof val === 'number') result[key] = { integerValue: val };
     else if (typeof val === 'boolean') result[key] = { booleanValue: val };
+    else if (Array.isArray(val)) {
+      result[key] = {
+        arrayValue: {
+          values: val.map(v => ({ stringValue: v }))
+        }
+      };
+    }
   }
   return result;
 };
