@@ -28,7 +28,7 @@ export const getCollection = async (collection) => {
 
 export const updateDoc = async (collection, docId, data) => {
   const token = await getToken();
-  const res = await fetch(`${BASE_URL}/${collection}/${docId}/${data}`, {
+  const res = await fetch(`${BASE_URL}/${collection}/${docId}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -41,7 +41,7 @@ export const updateDoc = async (collection, docId, data) => {
 
 export const postDoc = async (collection, data) => {
   const token = await getToken();
-  const res = await fetch(`${BASE_URL}/${collection}/${data}`, {
+  const res = await fetch(`${BASE_URL}/${collection}`, {
     method: 'POST',
     headers: {
         Authorization: `Bearer ${token}`,
