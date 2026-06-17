@@ -4,7 +4,7 @@ export const getIdToken = async () => {
   return new Promise((resolve, reject) => {
     const auth = getAuth();
     if (auth.currentUser) {
-      return auth.currrentUser.getIdToken().then(resolve).catch(reject);
+      return auth.currentUser.getIdToken().then(resolve).catch(reject);
     }
       const unsubcribe = auth.onAuthStateChanged(async (user) => {
         unsubcribe();

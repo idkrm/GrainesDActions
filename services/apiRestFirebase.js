@@ -53,6 +53,7 @@ function formatFields(obj = {}) {
 }
 
 export const getDoc = async (collection, docId) => {
+  console.log('Requête envoyée vers :', `${BASE_URL}/${collection}/${docId}`);
   const token = await getToken();
   const res = await fetch(`${BASE_URL}/${collection}/${docId}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -60,6 +61,8 @@ export const getDoc = async (collection, docId) => {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Firestore REST ${res.status}`);
   const json = await res.json();
+  console.log('Réponse reçue :', json);
+  console.log('Status :', res.status);
   return { id: docId, ...decodeFields(json.fields) };
 };
 
