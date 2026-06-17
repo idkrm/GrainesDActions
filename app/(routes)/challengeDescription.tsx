@@ -18,10 +18,10 @@ import {
     arrayUnion,
     collection,
     doc,
-    getDoc,
     getDocs,
     runTransaction,
 } from "firebase/firestore";
+import { getDoc } from "../../services/apiRestFirebase";
 
 const IMAGES_LOCALES: Record<string, any> = {
   "covoiturage.png": require("@/assets/images/covoiturage.png"),
@@ -96,10 +96,9 @@ export default function ChallengeDescription() {
                 setLoadingDefi(true);
                 if (!defiId) return;
 
-                const ref = doc(db, "Defis", String(defiId));
-                const snap = await getDoc(ref);
+                const snap = await getDoc("Defis", defiId);
 
-                if (snap.exists()) setDefi(snap.data() as Defi);
+                if (snap) setDefi(snap as Defi);
                 else setDefi(null);
             } catch (e) {
                 console.log(e);
@@ -119,13 +118,16 @@ export default function ChallengeDescription() {
                 const user = auth.currentUser;
                 if (!user || !defiId) return;
 
-                const userSnap = await getDoc(doc(db, "Users", user.uid));
-                if (userSnap.exists()) {
-                    const userData = userSnap.data();
-                    if (userData?.admin === true) {
+                const userSnap = await getDoc("Users", user.uid) as {
+                    admin?: boolean;
+                    defi_en_cours?: any[];
+                } | null
+
+                if (userSnap) {
+                    if (userSnap.admin === true) {
                         setIsAdmin(true);
                     }
-                    const defiEnCoursRaw = (userSnap.data()?.defi_en_cours ?? []) as any[];
+                    const defiEnCoursRaw = (userSnap.defi_en_cours ?? []) as any[];
                     const hasDefi = defiEnCoursRaw.some((v) => String(v) === String(defiId));
                     setAlreadyAccepted(hasDefi);
                 }
@@ -218,9 +220,16 @@ export default function ChallengeDescription() {
         );
     }
 
-    const imageSource = defi.image && IMAGES_LOCALES[defi.image] 
-        ? IMAGES_LOCALES[defi.image] 
-        : (defi.image?.startsWith('http') ? { uri: defi.image } : null);
+    let imageSource;
+    if(typeof defi.image === "string"){
+        if(IMAGES_LOCALES[defi.image]){
+            imageSource = IMAGES_LOCALES[defi.image]
+        } else if(defi.image.startsWith("http")){
+            imageSource = { uri: defi.image }
+        }
+    }
+
+    console.log("categorie =>", typeof defi.categorie, Array.isArray(defi.categorie), defi.categorie);
 
     return (
         <View style={styles.mainContainer}>
@@ -266,7 +275,7 @@ export default function ChallengeDescription() {
                             <Text style={[styles.badgeText, { color: '#0288D1' }]}> {defi.co2} kg CO2</Text>
                         </View>
                     )}
-
+                    
                     {defi.categorie?.map((catId, index) => (
                         <View key={index} style={styles.badge}>
                             <Text style={styles.badgeText}>{categoryMap[catId] || "Catégorie"}</Text>
