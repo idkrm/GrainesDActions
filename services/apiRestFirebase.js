@@ -66,14 +66,6 @@ export const getDoc = async (collection, docId) => {
   return { id: docId, ...decodeFields(json.fields) };
 };
 
-export const getCollection = async (collection) => {
-  const token = await getToken();
-  const res = await fetch(`${BASE_URL}/${collection}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return await res.json();
-};
-
 export const updateDoc = async (collection, docId, data) => {
   const token = await getToken();
   const fields = Object.keys(data).map(d => `updateMask.fieldPaths=${d}`).join('&');

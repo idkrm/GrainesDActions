@@ -42,6 +42,20 @@ export default function EditProfileScreen() {
     last_address_update: null as any, 
   });
 
+    interface User {
+    admin?: boolean
+    adresse? : string
+    createdAt?: string
+    email?: string
+    is_public?: boolean
+    nb_points?: number
+    nom?: string
+    notifications_enabled?: boolean
+    prenom?: string
+    pseudo?: string
+    last_address_update: string
+  }
+
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [activeField, setActiveField] = useState<'pseudo' | 'email' | 'password' | 'adresse' | null>(null);
@@ -55,10 +69,10 @@ export default function EditProfileScreen() {
         }));
 
         try {
-          const docSnap = await getDoc("Users", currentUser.uid);
+          const docSnap = await getDoc("Users", currentUser.uid) as User | null;
 
-          if (docSnap.exists()) {
-            const data = docSnap.data();
+          if (docSnap) {
+            const data = docSnap;
             setUserData(prev => ({
               ...prev,
               nom: data.nom || '',
